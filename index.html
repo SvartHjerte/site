@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>The Cheat List</title>
+
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/agreement.css">
+  <link rel="stylesheet" href="css/vegas.css">
+  <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <div class="page-shell">
+
+    <header class="hero">
+      <img src="images/logo.png" alt="The Cheat List logo" class="site-logo">
+      <h1>The Cheat List</h1>
+      <p class="tagline">A playful agreement for impossible celebrity exceptions.</p>
+    </header>
+
+    <div class="info-buttons">
+      <button onclick="toggleInfo('whatIsPanel')">What Is The Cheat List?</button>
+      <button onclick="toggleInfo('howToPanel')">How To Use This Site</button>
+      <button onclick="toggleInfo('disclaimerPanel')">Disclaimer</button>
+      <button onclick="toggleInfo('creditsPanel')">Credits</button>
+    </div>
+
+    <div id="whatIsPanel" class="info-panel hidden">
+      <h3>What Is The Cheat List?</h3>
+      <p>
+        The Celebrity Cheat List is a playful relationship tradition where partners
+        each choose five celebrities they jokingly agree would be an "exception."
+        It’s meant purely for fun and conversation.
+      </p>
+    </div>
+
+    <div id="howToPanel" class="info-panel hidden">
+      <h3>How To Use This Site</h3>
+      <ol>
+        <li>Search for celebrities.</li>
+        <li>Add them to Her List or His List.</li>
+        <li>Each list can contain up to five people.</li>
+        <li>Preview the Cheat List Agreement.</li>
+        <li>Print or Save as PDF.</li>
+        <li>Laugh about it together.</li>
+      </ol>
+    </div>
+
+    <div id="disclaimerPanel" class="info-panel hidden">
+      <h3>Disclaimer</h3>
+      <p>
+        This website and the generated "Cheat List Agreement" documents are intended
+        for entertainment purposes only. They are not legal contracts and carry no
+        legal authority.
+      </p>
+      <p>
+        The Celebrity Cheat List is a humorous cultural tradition and should be
+        understood as a joke between consenting adults. This site does not encourage
+        infidelity or harmful behavior.
+      </p>
+      <p>
+        The Cheat List website is not affiliated with, endorsed by, or connected to
+        any celebrities listed on this site. All celebrity names and images are used
+        solely for commentary, parody, and entertainment purposes.
+      </p>
+    </div>
+
+    <div id="creditsPanel" class="info-panel hidden">
+      <h3>Data Sources</h3>
+      <p>Celebrity data and images are provided by the following APIs:</p>
+
+      <ul>
+        <li>The Movie Database (TMDB)</li>
+        <li>TheSportsDB</li>
+        <li>TheAudioDB</li>
+      </ul>
+
+      <p>
+        This product uses the TMDB API but is not endorsed or certified by TMDB.
+      </p>
+
+      <p>
+        All celebrity names and images remain the property of their respective owners
+        and are used for commentary, parody, and entertainment purposes only.
+      </p>
+    </div>
+
+    <section class="parchment-panel">
+      <div class="name-row">
+        <div class="name-box">
+          <label for="herName">Her Name</label>
+          <input id="herName" type="text" placeholder="Enter her name" oninput="updateAgreementButtons()">
+        </div>
+
+        <div class="name-box">
+          <label for="hisName">His Name</label>
+          <input id="hisName" type="text" placeholder="Enter his name" oninput="updateAgreementButtons()">
+        </div>
+      </div>
+
+      <h2>Cheat List Builder</h2>
+
+      <div class="builder-section">
+        <div class="list-box">
+          <div id="herList"></div>
+        </div>
+
+        <div class="list-box">
+          <div id="hisList"></div>
+        </div>
+      </div>
+
+      <div class="builder-buttons">
+       <button id="previewHerBtn" onclick="generateHerPDF()">Preview Her Agreement</button>
+       <button id="previewHisBtn" onclick="generateHisPDF()">Preview His Agreement</button>
+       <button onclick="generateCouplesPDF()">Preview Couples Agreement</button>
+       <div class="share-row">
+       <button onclick="shareSite()">Share This Site</button>
+      <button onclick="clearLists()">Clear Lists</button>
+       </div>
+    </section>
+
+    <div class="layout">
+      <section class="parchment-panel search-column">
+        <h2>Search Celebrities</h2>
+
+        <div class="search-row">
+          <input id="searchInput" type="text" placeholder="Enter celebrity name" oninput="handleLiveSearch()">
+          <button onclick="searchCelebrity()">Search</button>
+        </div>
+
+        <div id="results" class="search-results"></div>
+      </section>
+
+      <section class="parchment-panel ranking-column">
+        <div id="rankings"></div>
+      </section>
+    </div>
+
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-left">
+        © 2026 TheCheatList.com
+        <span class="footer-tagline">
+          A playful celebrity agreement generator.
+        </span>
+      </div>
+
+      <div class="footer-right">
+        Data Sources:
+        <a href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">TMDB</a>,
+        <a href="https://www.thesportsdb.com" target="_blank" rel="noopener noreferrer">TheSportsDB</a>,
+        <a href="https://www.theaudiodb.com" target="_blank" rel="noopener noreferrer">TheAudioDB</a>
+      </div>
+    </div>
+
+    <div class="footer-legal">
+      This product uses the TMDB API but is not endorsed or certified by TMDB.
+      All celebrity names and images belong to their respective owners and are used for commentary and entertainment purposes only.
+    </div>
+  </footer>
+
+  <section id="agreementPreview" class="hidden">
+    <div class="certificate-shell">
+      <div class="certificate-actions no-print">
+        <button onclick="window.print()">Print / Save PDF</button>
+        <button onclick="closeAgreement()">Close</button>
+      </div>
+
+      <div id="agreementContent"></div>
+    </div>
+  </section>
+
+  <script src="js/config.js"></script>
+  <script src="js/helpers.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/logo.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/main.js"></script>
+
+</body>
+</html>

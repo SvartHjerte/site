@@ -1,0 +1,70 @@
+.vegas-reveal {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 8, 3, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+}
+
+.vegas-reveal-card {
+  width: min(900px, 95vw);
+  background: linear-gradient(180deg, #2a160a, #140904);
+  border: 2px solid #d8a54a;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow:
+    0 0 12px rgba(255, 186, 73, 0.5),
+    0 0 30px rgba(255, 120, 40, 0.3),
+    0 14px 40px rgba(0, 0, 0, 0.55);
+  color: #f7e7b7;
+}
+
+.vegas-title {
+  text-align: center;
+  font-family: 'Righteous', cursive;
+  font-size: 2rem;
+  letter-spacing: 1px;
+  margin-bottom: 22px;
+  color: #ffd27a;
+  text-shadow:
+    0 0 8px rgba(255, 210, 122, 0.5),
+    0 0 18px rgba(255, 140, 50, 0.35);
+}
+
+.vegas-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.vegas-column {
+  background: rgba(255, 248, 235, 0.06);
+  border: 1px solid rgba(255, 210, 122, 0.35);
+  border-radius: 12px;
+  padding: 18px;
+}
+
+.vegas-column h3 {
+  margin: 0 0 12px 0;
+  text-align: center;
+  color: #f7e7b7;
+}
+
+.vegas-roll {
+  min-height: 210px;
+  padding: 14px;
+  border-radius: 10px;
+  background: rgba(255, 250, 240, 0.92);
+  color: #3a2a14;
+  font-size: 1.05rem;
+  line-height: 1.8;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.08);
+  white-space: pre-line;
+}
+
+.vegas-final-name {
+  font-weight: 700;
+}

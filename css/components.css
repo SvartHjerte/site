@@ -1,0 +1,627 @@
+/* ---------- HERO ---------- */
+
+.hero {
+  text-align: center;
+  margin-bottom: 50px;
+  padding-top: 20px;
+}
+
+.site-logo {
+  width: 500px;
+  max-width: 90%;
+  display: block;
+  margin: auto;
+  margin-bottom: 10px;
+  filter:
+    drop-shadow(0 0 8px rgba(255, 180, 60, 0.6))
+    drop-shadow(0 0 18px rgba(255, 120, 40, 0.4));
+}
+
+.hero h1 {
+  font-family: 'Righteous', cursive;
+  font-size: 3rem;
+  margin: 10px 0;
+  letter-spacing: 2px;
+  color: #f7e7b7;
+  text-shadow:
+    0 0 6px rgba(255, 200, 120, 0.6),
+    0 0 14px rgba(255, 150, 60, 0.35);
+}
+
+.hero::after {
+  content: "";
+  display: block;
+  width: 260px;
+  height: 3px;
+  margin: 18px auto 0;
+  background: linear-gradient(90deg, #a66b1f, #ffd27a, #a66b1f);
+  border-radius: 3px;
+}
+
+.tagline {
+  font-size: 1.2rem;
+  margin-top: 8px;
+  color: #e7cfa0;
+  letter-spacing: 0.5px;
+}
+
+/* ---------- PANELS ---------- */
+
+.parchment-panel {
+  background: #f6ecd5;
+  color: #3a2a14;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  margin-bottom: 30px;
+}
+
+/* ---------- LIST BUILDER ---------- */
+
+.cheat-list-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px;
+  background: #fffaf0;
+  border: 1px solid #d8c7a6;
+  border-radius: 10px;
+}
+
+.cheat-list-image img {
+  width: 50px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #c8b28a;
+  flex-shrink: 0;
+}
+
+.cheat-list-image .placeholder,
+.person-photo.placeholder {
+  width: 50px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eee2c9;
+  color: #6d5a42;
+  font-size: 11px;
+  border-radius: 6px;
+  border: 1px solid #c8b28a;
+}
+
+.cheat-list-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cheat-list-actions {
+  margin-left: auto;
+}
+
+/* ---------- BUTTONS ---------- */
+
+.builder-buttons {
+  text-align: center;
+}
+
+/* ---------- SEARCH ---------- */
+
+.search-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.search-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #c8b28a;
+  border-radius: 6px;
+  background: #fffaf0;
+  color: #3a2a14;
+}
+
+.search-row button {
+  background: #7a1f2b;
+}
+
+.search-row button:hover {
+  background: #5f1821;
+}
+
+/* ---------- INFO BUTTONS ---------- */
+
+.info-buttons {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.info-panel {
+  background: #f6ecd5;
+  color: #3a2a14;
+  padding: 20px;
+  margin-bottom: 20px;
+  border-radius: 6px;
+}
+
+/* ---------- SECTION HEADINGS ---------- */
+
+.list-box h2,
+.list-box h3,
+.ranking-column h2,
+.search-column h2 {
+  color: #3a2a14;
+  text-shadow: none;
+}
+
+/* ---------- RANKING CARDS ---------- */
+
+.ranking-card {
+  display: grid;
+  grid-template-columns: 36px 80px 1fr;
+  gap: 12px;
+  align-items: start;
+  position: relative;
+  padding-right: 120px;
+}
+
+.search-ranking-card .ranking-rank {
+  color: #7a1f2b;
+}
+
+.ranking-rank {
+  width: 36px;
+  text-align: center;
+  font-weight: bold;
+  font-size: 1.05rem;
+  color: #3a2a14;
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 2px 0 0;
+  border-radius: 0;
+}
+
+.ranking-photo {
+  width: 70px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #c8b28a;
+}
+
+.ranking-no-image {
+  width: 70px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eee2c9;
+  color: #6d5a42;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.ranking-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.ranking-name {
+  font-weight: bold;
+  font-size: 1.05rem;
+  color: #3a2a14;
+}
+
+.ranking-votes {
+  font-size: 0.9rem;
+  color: #6d5a42;
+  font-style: italic;
+}
+
+.ranking-actions {
+  position: absolute;
+  right: 0px;
+  bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ranking-actions button,
+.ranking-actions a {
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: #7a1f2b;
+  color: white;
+  text-decoration: none;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.ranking-actions button:hover,
+.ranking-actions a:hover {
+  background: #5f1821;
+}
+
+/* ---------- SEARCH RESULTS ---------- */
+
+.search-results {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.search-card {
+  display: grid;
+  grid-template-columns: 80px 1fr 130px;
+  gap: 14px;
+  align-items: start;
+  background: #fffaf0;
+  color: #3a2a14;
+  border: 1px solid #d8c7a6;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+}
+
+.search-card-info {
+  min-width: 0;
+}
+
+.search-card-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.search-card-buttons button {
+  width: 100%;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  background: #7a1f2b;
+  color: white;
+  font-size: 11px;
+  cursor: pointer;
+  text-align: center;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.search-card-buttons button:hover {
+  background: #5f1821;
+}
+
+/* ---------- OPTIONAL LIST CARD ---------- */
+
+.list-card {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: #fffaf0;
+  color: #3a2a14;
+  border: 1px solid #d8c7a6;
+  border-radius: 10px;
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.list-card img {
+  width: 60px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #c8b28a;
+  flex-shrink: 0;
+}
+
+.list-card strong {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.list-card p {
+  margin: 0 0 8px;
+  color: #6d5a42;
+  font-size: 0.92rem;
+}
+
+.list-card button {
+  background: #7a1f2b;
+  padding: 7px 10px;
+  font-size: 0.85rem;
+}
+
+.list-card button:hover {
+  background: #5f1821;
+}
+
+/* ---------- RESULT TOP LINE ---------- */
+
+.result-topline {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 3px;
+}
+
+.result-topline h3 {
+  margin: 0;
+}
+
+/* ---------- SOURCE LABELS ---------- */
+
+.badge {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.badge-tmdb {
+  color: #2f6da3;
+}
+
+.badge-sports {
+  color: #2d8a3d;
+}
+
+.badge-music {
+  color: #8a3db8;
+}
+
+/* ---------- SOURCE NOTE + LINKS ---------- */
+
+.source-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 4px 0 6px;
+}
+
+.source-note {
+  margin: 0;
+  font-size: 12px;
+  color: #7a6a55;
+}
+
+.source-link {
+  display: inline-block;
+  width: fit-content;
+  font-size: 12px;
+  color: #7a1f2b;
+  text-decoration: none;
+  font-weight: 600;
+  margin-top: 1px;
+}
+
+.source-link:hover {
+  text-decoration: underline;
+}
+
+/* ==========================
+   SITE FOOTER
+========================== */
+
+.site-footer {
+  margin-top: 60px;
+  padding: 25px 20px;
+  background: #120904;
+  color: #d9c6a3;
+  font-size: 0.9rem;
+  border-top: 2px solid #5a3a1c;
+}
+
+.footer-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+}
+
+.footer-left,
+.footer-right {
+  display: block;
+}
+
+.footer-tagline {
+  opacity: 0.8;
+  margin-left: 8px;
+}
+
+.footer-right a {
+  color: #f0c878;
+  text-decoration: none;
+}
+
+.footer-right a:hover {
+  text-decoration: underline;
+}
+
+.footer-legal {
+  max-width: 1100px;
+  margin: 12px auto 0;
+  font-size: 0.8rem;
+  opacity: 0.75;
+  line-height: 1.4;
+}
+
+@media (max-width: 700px) {
+  .site-footer {
+    text-align: center;
+  }
+
+  .footer-inner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-tagline {
+    display: block;
+    margin-left: 0;
+    margin-top: 4px;
+  }
+
+  .footer-right {
+    line-height: 1.5;
+  }
+
+  .footer-legal {
+    text-align: center;
+  }
+}
+.search-suggestions {
+  margin-top: 12px;
+  text-align: center;
+}
+
+.suggestion-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.suggestion-btn {
+  padding: 8px 14px;
+  border: 1px solid #c9a24f;
+  background: #fff8e8;
+  border-radius: 999px;
+  cursor: pointer;
+}
+@media screen and (max-width: 700px) { 
+  .ranking-card,
+  .search-ranking-card {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    position: static !important;
+    padding: 14px !important;
+    padding-right: 14px !important;
+    gap: 10px !important;
+  }
+
+  .ranking-rank {
+    width: auto !important;
+    font-size: 1.2rem !important;
+    margin: 0 0 4px 0 !important;
+    text-align: center !important;
+  }
+
+  .ranking-photo-wrap {
+    width: 120px !important;
+    display: flex !important;
+    justify-content: center !important;
+  }
+
+  .ranking-photo,
+  .ranking-no-image {
+    width: 140px !important;
+    height: 140px !important;
+    object-fit: cover !important;
+    border-radius: 12px !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+
+  .ranking-main {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    min-width: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    gap: 4px !important;
+  }
+
+  .ranking-name {
+    font-size: 1.05rem !important;
+    line-height: 1.15 !important;
+    word-break: break-word !important;
+    margin-bottom: 2px !important;
+  }
+
+  .ranking-votes {
+    font-size: 0.95rem !important;
+    line-height: 1.2 !important;
+  }
+
+  .ranking-actions {
+    position: static !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    margin-top: 8px !important;
+  }
+
+  .ranking-actions button,
+  .ranking-actions a {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10px 12px !important;
+    font-size: 0.95rem !important;
+    display: block !important;
+  }
+}
+/* ==========================
+   MOBILE BUTTON ALIGNMENT
+========================== */
+
+@media screen and (max-width: 700px) {
+
+  #previewHerBtn,
+  #previewHisBtn,
+  #previewCouplesBtn {
+    display: block;
+    width: 90%;
+    max-width: 420px;
+    margin: 12px auto;
+    text-align: center;
+  }
+
+  .share-row {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 14px;
+    width: 90%;
+    max-width: 420px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .share-row button {
+    flex: 1;
+  }
+
+}
