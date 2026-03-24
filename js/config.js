@@ -26,5 +26,5 @@ const defaultPeople = [
   { id: "tmdb-10859", name: "Ryan Reynolds", category: "man", votes: 135, source: "tmdb", image: "", subtitle: "Actor" },
   { id: "tmdb-73968", name: "Henry Cavill", category: "man", votes: 100, source: "tmdb", image: "", subtitle: "Actor" },
   { id: "tmdb-16828", name: "Chris Evans", category: "man", votes: 98, source: "tmdb", image: "", subtitle: "Actor" },
-  { id: "tmdb-15152", name: "Michael B. Jordan", category: "man", votes: 92, source: "tmdb", image: "", subtitle: "Actor" }
+  { id: "tmdb-135651", name: "Michael B. Jordan", category: "man", votes: 92, source: "tmdb", image: "", subtitle: "Actor" }
 ];
