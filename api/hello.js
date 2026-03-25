@@ -1,51 +1,45 @@
-const chromium = require("@sparticuz/chromium");
-const puppeteer = require("puppeteer-core");
-
 module.exports = async function (req, res) {
-  let browser;
+  const pdfString = `%PDF-1.1
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 144] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 44 >>
+stream
+BT
+/F1 18 Tf
+40 80 Td
+(Test PDF works) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000062 00000 n 
+0000000117 00000 n 
+0000000243 00000 n 
+0000000337 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+407
+%%EOF`;
 
-  try {
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath(),
-      headless: true
-    });
+  const pdfBuffer = Buffer.from(pdfString, "utf8");
 
-    const page = await browser.newPage();
-
-    await page.setContent(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>PDF Test</title>
-        </head>
-        <body style="font-family: Georgia, serif; text-align: center; padding: 80px;">
-          <h1>The Cheat List Agreement</h1>
-          <p>This is a test PDF generated on the server.</p>
-        </body>
-      </html>
-    `);
-
-    const pdf = await page.pdf({
-      format: "Letter",
-      printBackground: true
-    });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", "inline; filename=\"test.pdf\"");
-    res.status(200).send(pdf);
-  } catch (error) {
-    console.error("PDF generation failed:", error);
-
-    res.status(500).json({
-      ok: false,
-      error: String(error && error.message ? error.message : error)
-    });
-  } finally {
-    if (browser) {
-      await browser.close();
-    }
-  }
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader("Content-Disposition", 'inline; filename="test.pdf"');
+  res.end(pdfBuffer);
 };
