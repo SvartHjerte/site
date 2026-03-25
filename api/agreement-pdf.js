@@ -33,11 +33,41 @@ function buildListItems(list) {
   }).join("");
 }
 
+function readRequestBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = "";
+
+    req.on("data", chunk => {
+      data += chunk;
+    });
+
+    req.on("end", () => {
+      if (!data) {
+        resolve({});
+        return;
+      }
+
+      try {
+        resolve(JSON.parse(data));
+      } catch (error) {
+        reject(new Error("Invalid JSON body"));
+      }
+    });
+
+    req.on("error", reject);
+  });
+}
+
 module.exports = async function (req, res) {
   let browser;
 
   try {
-    const body = req.body || {};
+    let body = {};
+
+    if (req.method === "POST") {
+      body = await readRequestBody(req);
+    }
+
     const type = String(body.type || req.query.type || "her").toLowerCase();
 
     const herName = escapeHtml(body.herName || "Her");
@@ -198,7 +228,6 @@ module.exports = async function (req, res) {
               margin-top: 2px;
             }
 
-            .signatures,
             .certificate-signatures {
               display: flex;
               justify-content: space-between;
@@ -206,14 +235,12 @@ module.exports = async function (req, res) {
               margin-top: 40px;
             }
 
-            .sig,
             .certificate-sign-block {
               flex: 1;
               text-align: center;
               font-size: 13px;
             }
 
-            .line,
             .certificate-sign-line {
               border-top: 1px solid #2f2417;
               margin-bottom: 8px;

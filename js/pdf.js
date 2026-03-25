@@ -240,7 +240,7 @@ function openAgreementPDF(type) {
     })
     .catch((error) => {
       console.error("PDF generation failed:", error);
-      alert("Could not generate PDF.");
+      alert(`Could not generate PDF: ${error.message}`);
     });
 }
 
