@@ -1,59 +1,13 @@
 const chromium = require("@sparticuz/chromium");
 const puppeteer = require("puppeteer-core");
 
-module.exports = async function (req, res) {
-  let browser;
-
-  try {
-const body = req.body || {};
-const type = String(body.type || req.query.type || "her").toLowerCase();
-const herName = String(body.herName || "Her");
-const hisName = String(body.hisName || "His");
-const herList = Array.isArray(body.herList) ? body.herList : [];
-const hisList = Array.isArray(body.hisList) ? body.hisList : [];const type = (req.query.type || "her").toLowerCase();
-
-let title = "The Cheat List Agreement";
-let subtitle = `${herName}'s Agreement`;
-let intro = "This playful agreement certifies the following impossible celebrity exceptions.";
-let bodyHtml = `
-  <div class="list-box">
-    <ul>
-      ${buildListItems(herList)}
-    </ul>
-  </div>
-`;
-
-if (type === "his") {
-  subtitle = `${hisName}'s Agreement`;
-  bodyHtml = `
-    <div class="list-box">
-      <ul>
-        ${buildListItems(hisList)}
-      </ul>
-    </div>
-  `;
-}
-
-if (type === "couples") {
-  subtitle = "Couples Agreement";
-  intro = `This agreement certifies that ${escapeHtml(hisName)} and ${escapeHtml(herName)} have mutually approved the following celebrity exemptions.`;
-  bodyHtml = `
-    <div style="display:flex; gap:24px; margin-top:10px;">
-      <div class="list-box" style="flex:1;">
-        <h3 style="margin-top:0;">${escapeHtml(herName)}'s Cheat List</h3>
-        <ul>
-          ${buildListItems(herList)}
-        </ul>
-      </div>
-
-      <div class="list-box" style="flex:1;">
-        <h3 style="margin-top:0;">${escapeHtml(hisName)}'s Cheat List</h3>
-        <ul>
-          ${buildListItems(hisList)}
-        </ul>
-      </div>
-    </div>
-  `;
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
 }
 
 function getPersonSubtitle(person) {
@@ -62,7 +16,7 @@ function getPersonSubtitle(person) {
 }
 
 function buildListItems(list) {
-  if (!list || list.length === 0) {
+  if (!Array.isArray(list) || list.length === 0) {
     return "<li>No celebrities selected yet.</li>";
   }
 
@@ -72,30 +26,92 @@ function buildListItems(list) {
 
     return `
       <li>
-        ${index + 1}. ${name}${subtitle ? ` <span style="font-size:13px;color:#5f4b2f;">(${subtitle})</span>` : ""}
+        <span class="person-name">${index + 1}. ${name}</span>
+        ${subtitle ? `<span class="person-subtitle">${subtitle}</span>` : ""}
       </li>
     `;
   }).join("");
 }
 
+module.exports = async function (req, res) {
+  let browser;
+
+  try {
+    const body = req.body || {};
+    const type = String(body.type || req.query.type || "her").toLowerCase();
+
+    const herName = escapeHtml(body.herName || "Her");
+    const hisName = escapeHtml(body.hisName || "His");
+
+    const herList = Array.isArray(body.herList) ? body.herList : [];
+    const hisList = Array.isArray(body.hisList) ? body.hisList : [];
+
+    let title = "The Cheat List Agreement";
+    let subtitle = `${herName}'s Agreement`;
+    let intro = "This playful agreement certifies the following impossible celebrity exceptions.";
+    let bodyHtml = `
+      <div class="list-box">
+        <ol class="certificate-list">
+          ${buildListItems(herList)}
+        </ol>
+      </div>
+    `;
+
     if (type === "his") {
-      subtitle = "His Edition";
-      names = [
-        "1. Scarlett Johansson",
-        "2. Margot Robbie",
-        "3. Zendaya",
-        "4. Ana de Armas",
-        "5. Sydney Sweeney"
-      ];
+      subtitle = `${hisName}'s Agreement`;
+      bodyHtml = `
+        <div class="list-box">
+          <ol class="certificate-list">
+            ${buildListItems(hisList)}
+          </ol>
+        </div>
+      `;
     }
 
     if (type === "couples") {
-      subtitle = "Couples Edition";
-      intro = "This playful agreement records both sides of the celebrity cheat list understanding.";
-      names = [
-        "Her List: Ryan Reynolds, Chris Hemsworth, Chris Evans",
-        "His List: Margot Robbie, Zendaya, Ana de Armas"
-      ];
+      subtitle = "Couples Agreement";
+      intro = `This agreement certifies that ${hisName} and ${herName} have mutually approved the following celebrity exemptions.`;
+      bodyHtml = `
+        <div class="couples-grid">
+          <div class="list-box couples-box">
+            <h3>${herName}'s Cheat List</h3>
+            <ol class="certificate-list">
+              ${buildListItems(herList)}
+            </ol>
+
+            <div class="certificate-signatures panel-certificate-signatures">
+              <div class="certificate-sign-block">
+                <div class="certificate-sign-line"></div>
+                <div class="certificate-sign-label">${hisName} Approval Signature</div>
+              </div>
+
+              <div class="certificate-sign-block date-block">
+                <div class="certificate-sign-line"></div>
+                <div class="certificate-sign-label">Date</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="list-box couples-box">
+            <h3>${hisName}'s Cheat List</h3>
+            <ol class="certificate-list">
+              ${buildListItems(hisList)}
+            </ol>
+
+            <div class="certificate-signatures panel-certificate-signatures">
+              <div class="certificate-sign-block">
+                <div class="certificate-sign-line"></div>
+                <div class="certificate-sign-label">${herName} Approval Signature</div>
+              </div>
+
+              <div class="certificate-sign-block date-block">
+                <div class="certificate-sign-line"></div>
+                <div class="certificate-sign-label">Date</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
     }
 
     const html = `
@@ -156,32 +172,79 @@ function buildListItems(list) {
               background: rgba(255,255,255,0.35);
               border: 1px solid #b69766;
               padding: 18px 24px;
+              box-sizing: border-box;
             }
 
-            .list-box ul {
+            .certificate-list {
               margin: 0;
               padding-left: 22px;
               font-size: 16px;
-              line-height: 1.7;
+              line-height: 1.55;
             }
 
-            .signatures {
+            .certificate-list li {
+              margin-bottom: 10px;
+            }
+
+            .person-name {
+              display: block;
+              font-weight: bold;
+            }
+
+            .person-subtitle {
+              display: block;
+              font-size: 13px;
+              color: #5f4b2f;
+              margin-top: 2px;
+            }
+
+            .signatures,
+            .certificate-signatures {
               display: flex;
               justify-content: space-between;
               gap: 30px;
               margin-top: 40px;
             }
 
-            .sig {
+            .sig,
+            .certificate-sign-block {
               flex: 1;
               text-align: center;
               font-size: 13px;
             }
 
-            .line {
+            .line,
+            .certificate-sign-line {
               border-top: 1px solid #2f2417;
               margin-bottom: 8px;
               height: 22px;
+            }
+
+            .certificate-sign-label {
+              font-size: 13px;
+            }
+
+            .couples-grid {
+              display: flex;
+              gap: 24px;
+              margin-top: 8px;
+            }
+
+            .couples-box {
+              flex: 1;
+              max-width: none;
+              margin-bottom: 0;
+            }
+
+            .couples-box h3 {
+              margin-top: 0;
+              margin-bottom: 14px;
+              text-align: center;
+              font-size: 18px;
+            }
+
+            .panel-certificate-signatures {
+              margin-top: 22px;
             }
 
             .footer {
@@ -203,26 +266,27 @@ function buildListItems(list) {
               <div class="subtitle">${subtitle}</div>
               <div class="intro">${intro}</div>
 
-              <div class="list-box">
-                <ul>
-                  ${names.map(name => `<li>${name}</li>`).join("")}
-                </ul>
-              </div>
+              ${bodyHtml}
 
-              <div class="signatures">
-                <div class="sig">
-                  <div class="line"></div>
-                  Approved By
+              ${type !== "couples" ? `
+                <div class="certificate-signatures">
+                  <div class="certificate-sign-block">
+                    <div class="certificate-sign-line"></div>
+                    <div class="certificate-sign-label">
+                      ${type === "her" ? `${hisName} Approval Signature` : `${herName} Approval Signature`}
+                    </div>
+                  </div>
+
+                  <div class="certificate-sign-block date-block">
+                    <div class="certificate-sign-line"></div>
+                    <div class="certificate-sign-label">Date</div>
+                  </div>
                 </div>
-                <div class="sig">
-                  <div class="line"></div>
-                  Witnessed With Mild Jealousy
-                </div>
-              </div>
+              ` : ""}
 
               <div class="footer">
                 For entertainment purposes only.<br>
-                Not endorsed by any celebrity, studio, league, label, or sensible legal authority.
+                Not endorsed by any celebrity, studio, team, league, label, or public figure.
               </div>
             </div>
           </div>
@@ -266,13 +330,11 @@ function buildListItems(list) {
 
     res.statusCode = 500;
     res.setHeader("Content-Type", "application/json");
-    res.end(
-      JSON.stringify({
-        ok: false,
-        message: "Agreement PDF generation failed",
-        error: String(error && error.message ? error.message : error)
-      })
-    );
+    res.end(JSON.stringify({
+      ok: false,
+      message: "Agreement PDF generation failed",
+      error: String(error && error.message ? error.message : error)
+    }));
   } finally {
     if (browser) {
       await browser.close();
