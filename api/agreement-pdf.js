@@ -37,7 +37,7 @@ function readRequestBody(req) {
   return new Promise((resolve, reject) => {
     let data = "";
 
-    req.on("data", chunk => {
+    req.on("data", (chunk) => {
       data += chunk;
     });
 
@@ -76,7 +76,8 @@ module.exports = async function (req, res) {
     const herList = Array.isArray(body.herList) ? body.herList : [];
     const hisList = Array.isArray(body.hisList) ? body.hisList : [];
 
-    let title = "The Cheat List Agreement";
+    const title = "The Cheat List Agreement";
+
     let subtitle = `${herName}'s Agreement`;
     let intro = "This playful agreement certifies the following impossible celebrity exceptions.";
     let bodyHtml = `
@@ -84,6 +85,19 @@ module.exports = async function (req, res) {
         <ol class="certificate-list">
           ${buildListItems(herList)}
         </ol>
+      </div>
+    `;
+    let signatureHtml = `
+      <div class="certificate-signatures">
+        <div class="certificate-sign-block">
+          <div class="certificate-sign-line"></div>
+          <div class="certificate-sign-label">${hisName} Approval Signature</div>
+        </div>
+
+        <div class="certificate-sign-block date-block">
+          <div class="certificate-sign-line"></div>
+          <div class="certificate-sign-label">Date</div>
+        </div>
       </div>
     `;
 
@@ -94,6 +108,19 @@ module.exports = async function (req, res) {
           <ol class="certificate-list">
             ${buildListItems(hisList)}
           </ol>
+        </div>
+      `;
+      signatureHtml = `
+        <div class="certificate-signatures">
+          <div class="certificate-sign-block">
+            <div class="certificate-sign-line"></div>
+            <div class="certificate-sign-label">${herName} Approval Signature</div>
+          </div>
+
+          <div class="certificate-sign-block date-block">
+            <div class="certificate-sign-line"></div>
+            <div class="certificate-sign-label">Date</div>
+          </div>
         </div>
       `;
     }
@@ -142,6 +169,7 @@ module.exports = async function (req, res) {
           </div>
         </div>
       `;
+      signatureHtml = "";
     }
 
     const html = `
@@ -152,10 +180,10 @@ module.exports = async function (req, res) {
           <title>${title}</title>
           <style>
             body {
-              font-family: Georgia, serif;
+              font-family: Georgia, "Times New Roman", serif;
               margin: 0;
               padding: 0;
-              background: #f8f3e8;
+              background: #f4ecd8;
               color: #2f2417;
             }
 
@@ -163,57 +191,76 @@ module.exports = async function (req, res) {
               width: 11in;
               min-height: 8.5in;
               box-sizing: border-box;
-              padding: 0.45in 0.55in;
-              background: #f8f3e8;
+              padding: 0.35in 0.45in;
+              background: #f4ecd8;
             }
 
             .agreement {
-              border: 3px solid #8a6a3d;
+              border: 6px double #8a6a3d;
               padding: 0.35in 0.45in;
-              min-height: 7.2in;
+              min-height: 7.3in;
               box-sizing: border-box;
               position: relative;
+              background:
+                radial-gradient(rgba(255,255,255,0.3), rgba(255,255,255,0.15)),
+                #f4ecd8;
             }
 
-            h1 {
+            .certificate-top {
               text-align: center;
-              margin: 0 0 8px;
-              font-size: 28px;
-              letter-spacing: 1px;
+              margin-bottom: 10px;
             }
 
-            .subtitle {
-              text-align: center;
-              font-size: 16px;
-              margin-bottom: 18px;
+            .certificate-logo {
+              display: block;
+              margin: 0 auto 10px;
+              max-width: 260px;
+              max-height: 90px;
+              object-fit: contain;
+            }
+
+            .certificate-title {
+              margin: 0;
+              font-size: 36px;
+              letter-spacing: 2px;
+              font-weight: bold;
+              text-transform: uppercase;
+            }
+
+            .certificate-subtitle {
+              margin: 6px 0 0;
+              font-size: 18px;
+              font-weight: normal;
+              color: #5f4b2f;
             }
 
             .intro {
               text-align: center;
               font-size: 14px;
-              margin: 0 auto 22px;
-              max-width: 8.5in;
-              line-height: 1.4;
+              margin: 12px auto 20px;
+              max-width: 8.3in;
+              line-height: 1.35;
             }
 
             .list-box {
-              margin: 0 auto 26px;
-              max-width: 7.6in;
+              margin: 0 auto 22px;
+              max-width: 7.7in;
               background: rgba(255,255,255,0.35);
-              border: 1px solid #b69766;
+              border: 2px solid #b69766;
               padding: 18px 24px;
               box-sizing: border-box;
+              border-radius: 6px;
             }
 
             .certificate-list {
               margin: 0;
-              padding-left: 22px;
+              padding-left: 20px;
               font-size: 16px;
-              line-height: 1.55;
+              line-height: 1.45;
             }
 
             .certificate-list li {
-              margin-bottom: 10px;
+              margin-bottom: 8px;
             }
 
             .person-name {
@@ -223,7 +270,7 @@ module.exports = async function (req, res) {
 
             .person-subtitle {
               display: block;
-              font-size: 13px;
+              font-size: 12px;
               color: #5f4b2f;
               margin-top: 2px;
             }
@@ -231,20 +278,19 @@ module.exports = async function (req, res) {
             .certificate-signatures {
               display: flex;
               justify-content: space-between;
-              gap: 30px;
+              gap: 40px;
               margin-top: 40px;
             }
 
             .certificate-sign-block {
               flex: 1;
               text-align: center;
-              font-size: 13px;
             }
 
             .certificate-sign-line {
               border-top: 1px solid #2f2417;
-              margin-bottom: 8px;
-              height: 22px;
+              height: 20px;
+              margin-bottom: 6px;
             }
 
             .certificate-sign-label {
@@ -253,8 +299,8 @@ module.exports = async function (req, res) {
 
             .couples-grid {
               display: flex;
-              gap: 24px;
-              margin-top: 8px;
+              gap: 20px;
+              margin-top: 6px;
             }
 
             .couples-box {
@@ -264,24 +310,23 @@ module.exports = async function (req, res) {
             }
 
             .couples-box h3 {
-              margin-top: 0;
-              margin-bottom: 14px;
+              margin: 0 0 10px;
               text-align: center;
               font-size: 18px;
             }
 
             .panel-certificate-signatures {
-              margin-top: 22px;
+              margin-top: 18px;
             }
 
             .footer {
               position: absolute;
-              left: 0.45in;
-              right: 0.45in;
-              bottom: 0.28in;
+              left: 0.38in;
+              right: 0.38in;
+              bottom: 0.20in;
               text-align: center;
-              font-size: 11px;
-              line-height: 1.35;
+              font-size: 10px;
+              line-height: 1.3;
               color: #5f4b2f;
             }
           </style>
@@ -289,27 +334,21 @@ module.exports = async function (req, res) {
         <body>
           <div class="page">
             <div class="agreement">
-              <h1>${title}</h1>
-              <div class="subtitle">${subtitle}</div>
+              <div class="certificate-top">
+                <img
+                  src="https://thecheatlist.com/images/logo.png"
+                  alt="The Cheat List logo"
+                  class="certificate-logo"
+                >
+                <h1 class="certificate-title">${title}</h1>
+                <h2 class="certificate-subtitle">${subtitle}</h2>
+              </div>
+
               <div class="intro">${intro}</div>
 
               ${bodyHtml}
 
-              ${type !== "couples" ? `
-                <div class="certificate-signatures">
-                  <div class="certificate-sign-block">
-                    <div class="certificate-sign-line"></div>
-                    <div class="certificate-sign-label">
-                      ${type === "her" ? `${hisName} Approval Signature` : `${herName} Approval Signature`}
-                    </div>
-                  </div>
-
-                  <div class="certificate-sign-block date-block">
-                    <div class="certificate-sign-line"></div>
-                    <div class="certificate-sign-label">Date</div>
-                  </div>
-                </div>
-              ` : ""}
+              ${signatureHtml}
 
               <div class="footer">
                 For entertainment purposes only.<br>
