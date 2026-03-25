@@ -185,20 +185,61 @@ function showAgreementPreview(type) {
 }
 
 function generateHerPDF() {
-  window.open("/api/agreement-pdf?type=her", "_blank");
+  openAgreementPDF("her");
 }
 
 function generateHisPDF() {
-  window.open("/api/agreement-pdf?type=his", "_blank");
+  openAgreementPDF("his");
 }
 
 function generateCouplesPDF() {
-  window.open("/api/agreement-pdf?type=couples", "_blank");
+  openAgreementPDF("couples");
 }
 
-function closeAgreement() {
-  const preview = document.getElementById("agreementPreview");
-  if (preview) {
-    preview.classList.add("hidden");
-  }
+function openAgreementPDF(type) {
+  const herNameInput = document.getElementById("herName");
+  const hisNameInput = document.getElementById("hisName");
+
+  const herName = herNameInput && herNameInput.value.trim()
+    ? herNameInput.value.trim()
+    : "Her";
+
+  const hisName = hisNameInput && hisNameInput.value.trim()
+    ? hisNameInput.value.trim()
+    : "His";
+
+  const herList = getStoredList("cheatListHerList");
+  const hisList = getStoredList("cheatListHisList");
+
+  const payload = {
+    type,
+    herName,
+    hisName,
+    herList,
+    hisList
+  };
+
+  fetch("/api/agreement-pdf", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  })
+    .then(async (response) => {
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(text || "Failed to generate PDF.");
+      }
+
+      return response.blob();
+    })
+    .then((blob) => {
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    })
+    .catch((error) => {
+      console.error("PDF generation failed:", error);
+      alert("Could not generate PDF.");
+    });
 }

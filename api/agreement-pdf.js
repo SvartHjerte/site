@@ -5,18 +5,78 @@ module.exports = async function (req, res) {
   let browser;
 
   try {
-    const type = (req.query.type || "her").toLowerCase();
+const body = req.body || {};
+const type = String(body.type || req.query.type || "her").toLowerCase();
+const herName = String(body.herName || "Her");
+const hisName = String(body.hisName || "His");
+const herList = Array.isArray(body.herList) ? body.herList : [];
+const hisList = Array.isArray(body.hisList) ? body.hisList : [];const type = (req.query.type || "her").toLowerCase();
 
-    let title = "The Cheat List Agreement";
-    let subtitle = "Her Edition";
-    let intro = "This playful agreement certifies the following impossible celebrity exceptions.";
-    let names = [
-      "1. Ryan Reynolds",
-      "2. Chris Hemsworth",
-      "3. Chris Evans",
-      "4. Henry Cavill",
-      "5. Michael B. Jordan"
-    ];
+let title = "The Cheat List Agreement";
+let subtitle = `${herName}'s Agreement`;
+let intro = "This playful agreement certifies the following impossible celebrity exceptions.";
+let bodyHtml = `
+  <div class="list-box">
+    <ul>
+      ${buildListItems(herList)}
+    </ul>
+  </div>
+`;
+
+if (type === "his") {
+  subtitle = `${hisName}'s Agreement`;
+  bodyHtml = `
+    <div class="list-box">
+      <ul>
+        ${buildListItems(hisList)}
+      </ul>
+    </div>
+  `;
+}
+
+if (type === "couples") {
+  subtitle = "Couples Agreement";
+  intro = `This agreement certifies that ${escapeHtml(hisName)} and ${escapeHtml(herName)} have mutually approved the following celebrity exemptions.`;
+  bodyHtml = `
+    <div style="display:flex; gap:24px; margin-top:10px;">
+      <div class="list-box" style="flex:1;">
+        <h3 style="margin-top:0;">${escapeHtml(herName)}'s Cheat List</h3>
+        <ul>
+          ${buildListItems(herList)}
+        </ul>
+      </div>
+
+      <div class="list-box" style="flex:1;">
+        <h3 style="margin-top:0;">${escapeHtml(hisName)}'s Cheat List</h3>
+        <ul>
+          ${buildListItems(hisList)}
+        </ul>
+      </div>
+    </div>
+  `;
+}
+
+function getPersonSubtitle(person) {
+  if (!person) return "";
+  return person.subtitle || person.category || person.genre || person.sport || "";
+}
+
+function buildListItems(list) {
+  if (!list || list.length === 0) {
+    return "<li>No celebrities selected yet.</li>";
+  }
+
+  return list.map((person, index) => {
+    const name = escapeHtml(person.name || "Unnamed Celebrity");
+    const subtitle = escapeHtml(getPersonSubtitle(person));
+
+    return `
+      <li>
+        ${index + 1}. ${name}${subtitle ? ` <span style="font-size:13px;color:#5f4b2f;">(${subtitle})</span>` : ""}
+      </li>
+    `;
+  }).join("");
+}
 
     if (type === "his") {
       subtitle = "His Edition";
