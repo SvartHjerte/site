@@ -78,8 +78,7 @@ function renderLists() {
   const hisContainer = document.getElementById("hisList");
 
   if (herContainer) {
-    herContainer.innerHTML = `
-      <h3>${escapeHtml(getHerLabel())} Cheat List</h3>
+    herContainer.innerHTML = 
       ${
         herList.length === 0
           ? "<p>No celebrities selected yet.</p>"
@@ -100,8 +99,7 @@ function renderLists() {
   }
 
   if (hisContainer) {
-    hisContainer.innerHTML = `
-      <h3>${escapeHtml(getHisLabel())} Cheat List</h3>
+    hisContainer.innerHTML = 
       ${
         hisList.length === 0
           ? "<p>No celebrities selected yet.</p>"
