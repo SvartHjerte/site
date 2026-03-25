@@ -61,9 +61,6 @@ function buildStandardCertificate({
 
         ${getCertificationText()}
 
-         <div class="certificate-body">
-        
-
         ${intro ? `<p class="certificate-intro">${intro}</p>` : ""}
 
         <div class="certificate-body">
@@ -188,15 +185,15 @@ function showAgreementPreview(type) {
 }
 
 function generateHerPDF() {
-  showAgreementPreview("her");
+  window.open("/api/agreement-pdf?type=her", "_blank");
 }
 
 function generateHisPDF() {
-  showAgreementPreview("his");
+  window.open("/api/agreement-pdf?type=his", "_blank");
 }
 
 function generateCouplesPDF() {
-  showAgreementPreview("couples");
+  window.open("/api/agreement-pdf?type=couples", "_blank");
 }
 
 function closeAgreement() {
