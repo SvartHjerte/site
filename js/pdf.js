@@ -59,7 +59,7 @@ function buildStandardCertificate({
           <h2 class="certificate-subtitle">${subtitle}</h2>
         </div>
 
-        ${getCertificationText()}
+        ${typeof getCertificationText === "function" ? getCertificationText() : ""}
 
         ${intro ? `<p class="certificate-intro">${intro}</p>` : ""}
 
@@ -242,4 +242,11 @@ function openAgreementPDF(type) {
       console.error("PDF generation failed:", error);
       alert("Could not generate PDF.");
     });
+}
+
+function closeAgreement() {
+  const preview = document.getElementById("agreementPreview");
+  if (preview) {
+    preview.classList.add("hidden");
+  }
 }
