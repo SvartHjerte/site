@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/SvartHjerte/site/issues"
   },
-  "homepage": "https://github.com/SvartHjerte/site#readme"
+  "homepage": "https://github.com/SvartHjerte/site#readme",
+  "dependencies": {
+    "@sparticuz/chromium": "^143.0.4",
+    "puppeteer-core": "^24.40.0"
+  }
 }
