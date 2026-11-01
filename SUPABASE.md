@@ -57,7 +57,8 @@ the browser through the ranking integration.
    see below. For a later public rollout, configure the Turnstile secret in
    Supabase, never in a public file, and its site key in the server environment.
 4. Copy `.env.example` into your local server environment. Set the project's
-   public publishable key (or legacy anon key), server-only service-role key and
+   public key in `SUPABASE_ANON_KEY` (legacy anon key) or
+   `SUPABASE_PUBLISHABLE_KEY` (takes precedence when nonempty), server-only service-role key and
    server-side TMDB key. Never commit real `.env` files. The service-role key is
    read by server modules only. Set `SITE_ORIGIN` to the exact browser origin
    (no trailing slash), separately for local, preview, and production servers.

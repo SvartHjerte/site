@@ -14,6 +14,29 @@ function configure() {
   process.env.TURNSTILE_SITE_KEY = 'site-key';
 }
 
+test('Supabase accepts the existing anon variable, preserves publishable precedence and rejects private keys', () => {
+  configure(); const previousAnon = process.env.SUPABASE_ANON_KEY;
+  const anon = `test.${Buffer.from(JSON.stringify({ role: 'anon' })).toString('base64url')}.test`;
+  try {
+    process.env.SUPABASE_ANON_KEY = anon;
+    assert.equal(config().publicKey, 'sb_publishable_test');
+    delete process.env.SUPABASE_PUBLISHABLE_KEY;
+    assert.equal(config().publicKey, anon);
+    process.env.SUPABASE_PUBLISHABLE_KEY = '';
+    assert.equal(config().publicKey, anon);
+    for (const key of ['sb_secret_private', `test.${Buffer.from(JSON.stringify({ role: 'service_role' })).toString('base64url')}.test`]) {
+      process.env.SUPABASE_ANON_KEY = key;
+      assert.throws(config, error => error.status === 503);
+    }
+    delete process.env.SUPABASE_ANON_KEY;
+    assert.throws(config, error => error.status === 503);
+  } finally {
+    if (previousAnon === undefined) delete process.env.SUPABASE_ANON_KEY;
+    else process.env.SUPABASE_ANON_KEY = previousAnon;
+    configure();
+  }
+});
+
 test('CAPTCHA is optional in development, production stays protected, and unset enable flag disables both APIs', async () => {
   configure(); const oldNodeEnv = process.env.NODE_ENV; const original = global.fetch;
   try {

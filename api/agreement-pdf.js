@@ -33,7 +33,22 @@ function buildListItems(list) {
   }).join("");
 }
 
-function readRequestBody(req) {
+function parseRequestBody(body) {
+  if (Buffer.isBuffer(body)) body = body.toString('utf8');
+  if (typeof body === 'string') {
+    try { body = body.trim() ? JSON.parse(body) : {}; }
+    catch { throw new Error('Invalid JSON body'); }
+  }
+  if (!body || typeof body !== 'object' || Array.isArray(body))
+    throw new Error('JSON body must be an object');
+  return body;
+}
+
+async function readRequestBody(req) {
+  // Vercel parses JSON before invoking the handler; its stream is consumed.
+  if (req.body !== undefined) return parseRequestBody(req.body);
+  // Plain local Node servers still provide an unread request stream.
+  if (req.readableEnded) return {};
   return new Promise((resolve, reject) => {
     let data = "";
 
@@ -48,7 +63,7 @@ function readRequestBody(req) {
       }
 
       try {
-        resolve(JSON.parse(data));
+        resolve(parseRequestBody(data));
       } catch (error) {
         reject(new Error("Invalid JSON body"));
       }
@@ -68,7 +83,7 @@ module.exports = async function (req, res) {
       body = await readRequestBody(req);
     }
 
-    const type = String(body.type || req.query.type || "her").toLowerCase();
+    const type = String(body.type || req.query?.type || "her").toLowerCase();
 
     const herName = escapeHtml(body.herName || "Her");
     const hisName = escapeHtml(body.hisName || "His");
