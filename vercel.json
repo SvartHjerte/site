@@ -1,5 +1,8 @@
 {
   "functions": {
+    "api/selections.js": {
+      "maxDuration": 60
+    },
     "api/hello.js": {
       "maxDuration": 30
     }

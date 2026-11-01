@@ -4,7 +4,7 @@
 
 async function searchTMDB(query) {
   try {
-    const url = `https://api.themoviedb.org/3/search/person?api_key=${TMDB_API_KEY}&query=${encodeURIComponent(query)}`;
+    const url = `/api/tmdb?query=${encodeURIComponent(query)}`;
     const res = await fetch(url);
     const data = await res.json();
 
@@ -105,7 +105,7 @@ async function searchAllSources(query) {
 
 async function fetchTmdbPersonImage(tmdbId) {
   try {
-    const url = `https://api.themoviedb.org/3/person/${tmdbId}?api_key=${TMDB_API_KEY}`;
+    const url = `/api/tmdb?id=${encodeURIComponent(tmdbId)}`;
     const res = await fetch(url);
     const data = await res.json();
 
@@ -134,6 +134,11 @@ async function hydrateDefaultPeopleImages() {
     })
   );
 
-  people = updates;
+  // Rankings may arrive while image requests are in flight. Preserve the latest
+  // catalog and server metadata instead of restoring the earlier snapshot.
+  people = people.map(person => {
+    const hydrated = updates.find(update => update.id === person.id);
+    return person.image || !hydrated?.image ? person : { ...person, image: hydrated.image };
+  });
   saveVotes();
 }

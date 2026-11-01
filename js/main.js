@@ -116,12 +116,7 @@ function clearLists() {
 }
 
 function voteForPerson(name) {
-  const person = findPersonByName(name);
-  if (!person) return;
-
-  person.votes += 1;
-  saveVotes();
-  updateRankings();
+  // Retained for compatibility. Rankings count active selections, never clicks.
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -130,6 +125,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   renderLists();
   updateRankings();
 
+  rankingSync.start();
   await hydrateDefaultPeopleImages();
   updateRankings();
 

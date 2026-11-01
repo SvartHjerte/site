@@ -124,12 +124,14 @@ function updateRankings() {
   const rankingsContainer = document.getElementById("rankings");
   if (!rankingsContainer) return;
 
-  const ranked = [...people]
+  const ranked = [...rankingSync.people]
     .sort((a, b) => b.votes - a.votes)
     .slice(0, 10);
 
   rankingsContainer.innerHTML = `
     <h2>Top Celebrity Cheat List</h2>
+    <p role="status">${escapeHtml(rankingSync.message)}</p>
+    ${rankingSync.failed ? '<button onclick="rankingSync.retry()">Retry shared rankings</button>' : ''}
     ${
       ranked.length === 0
         ? "<p>No rankings yet.</p>"
@@ -151,7 +153,7 @@ function updateRankings() {
 
                 <div class="ranking-main">
                   <div class="ranking-name">${escapeHtml(person.name)}</div>
-                  <div class="ranking-votes">${person.votes} vote${person.votes === 1 ? "" : "s"}</div>
+                  <div class="ranking-votes">${person.votes} visitor${person.votes === 1 ? "" : "s"}</div>
                   <div>${escapeHtml(person.subtitle || "")}</div>
                   ${
                     sourceLink
@@ -161,8 +163,8 @@ function updateRankings() {
                 </div>
 
                 <div class="ranking-actions">
-                  <button onclick='addTopPersonToList(${JSON.stringify(person.name)}, "her")'>Add to ${escapeHtml(getHerLabel())} List</button>
-                  <button onclick='addTopPersonToList(${JSON.stringify(person.name)}, "his")'>Add to ${escapeHtml(getHisLabel())} List</button>
+                  <button onclick="addTopPersonToList(decodeURIComponent('${encodeURIComponent(person.name).replaceAll("'", '%27')}'), 'her')">Add to ${escapeHtml(getHerLabel())} List</button>
+                  <button onclick="addTopPersonToList(decodeURIComponent('${encodeURIComponent(person.name).replaceAll("'", '%27')}'), 'his')">Add to ${escapeHtml(getHisLabel())} List</button>
                 </div>
               </div>
             `;
