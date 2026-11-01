@@ -10,3 +10,4 @@ supabase/.temp/
 *.key
 credentials.json
 *service-account*.json
+artifacts/pdf-samples/

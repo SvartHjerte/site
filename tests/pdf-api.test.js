@@ -10,6 +10,7 @@ function endpoint() {
   const context = {
     Buffer, console: { error() {} }, module: { exports: {} },
     require(name) {
+      if (name === '../lib/agreement-design') return require('../lib/agreement-design');
       if (name === '@sparticuz/chromium') return { executablePath: async () => '/test/chromium', args: [] };
       if (name === 'puppeteer-core') return { launch: async () => {
         launched++;
@@ -68,4 +69,31 @@ test('malformed JSON and non-object bodies fail before launching Chromium', asyn
   const req = Readable.from(['{bad']); req.method = 'POST';
   const res = response(); await e.handler(req, res); assert.equal(res.statusCode, 500);
   assert.equal(e.launched, 0);
+});
+
+test('agreement designs embed the original logo, escape every field and keep distinct branded layouts', () => {
+  const { buildAgreement } = require('../lib/agreement-design');
+  const original = readFileSync(join(__dirname, '../images/logo.png')).toString('base64');
+  const body = { herName: '<img src="https://evil.test">', hisName: 'Bob & Co',
+    herList: [{ name: '<script>bad()</script>', subtitle: '<iframe src="https://evil.test">' }],
+    hisList: [{ name: 'Other celebrity', sport: 'Sport' }] };
+  for (const [type, edition] of [['her', 'The Golden Marquee'], ['his', 'The High Roller'], ['couples', 'The Double Headliner']]) {
+    const html = buildAgreement(body, type);
+    assert.ok(html.includes(`src="data:image/png;base64,${original}"`));
+    assert.ok(html.includes(edition));
+    assert.ok(html.includes('&lt;img')); assert.ok(html.includes('Bob &amp; Co'));
+    assert.ok(!html.includes('<script>')); assert.ok(!html.includes('<iframe'));
+    assert.ok(!/(?:src|href)="https?:/.test(html), 'assets must be self-contained');
+    if (type !== 'his') assert.ok(html.includes('&lt;script&gt;bad()&lt;/script&gt;'));
+    assert.equal((html.match(/class="selection-panel"/g) || []).length, type === 'couples' ? 2 : 1);
+  }
+  const compact = buildAgreement({ ...body, herName: 'A'.repeat(60) }, 'couples');
+  assert.ok(compact.includes('class="couples compact"'));
+});
+
+test('invalid agreement types cannot enter HTML or download headers', async () => {
+  const e = endpoint(), res = response();
+  await e.handler({ method: 'POST', body: { type: '<script>bad()</script>' } }, res);
+  assert.equal(res.statusCode, 500); assert.equal(e.launched, 0);
+  assert.equal(res.headers['Content-Disposition'], undefined);
 });
