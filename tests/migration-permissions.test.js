@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 const { PGlite } = require('@electric-sql/pglite');
+const { randomUUID } = require('node:crypto');
 
 test('migration revokes browser/PUBLIC access even with permissive object defaults', async () => {
   // Entirely local: no Supabase connection, credentials, or audit query execution.
@@ -16,6 +17,8 @@ test('migration revokes browser/PUBLIC access even with permissive object defaul
       create table auth.users(id uuid primary key);
       alter default privileges grant all on tables to public, anon, authenticated;
       alter default privileges in schema public grant all on tables to public, anon, authenticated;
+      alter default privileges grant all on tables to service_role;
+      alter default privileges in schema public grant all on tables to service_role;
       alter default privileges grant execute on functions to public, anon, authenticated;
       alter default privileges in schema public grant execute on functions to public, anon, authenticated;
       create table public.default_grant_probe(id integer);
@@ -56,11 +59,41 @@ test('migration revokes browser/PUBLIC access even with permissive object defaul
       where n.nspname = 'public' and p.proname = any($1::text[]) and a.grantee = 0`,
       [['selection_rankings', 'selection_sync_gate', 'sync_visitor_selections']]);
     assert.deepEqual(publicFunctionGrants.rows, []);
+    for (const table of tables) {
+      for (const permission of ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) {
+        const expected = permission === 'SELECT' && ['celebrities', 'celebrity_sources'].includes(table);
+        const result = await db.query('select has_table_privilege($1, $2, $3) as allowed',
+          ['service_role', `public.${table}`, permission]);
+        assert.equal(result.rows[0].allowed, expected, `service_role ${permission} on ${table}`);
+      }
+    }
     for (const fn of functions) {
       const result = await db.query('select has_function_privilege($1, $2, $3) as allowed', ['service_role', `public.${fn}`, 'EXECUTE']);
       assert.equal(result.rows[0].allowed, true);
     }
+    const visitor = randomUUID();
+    await db.query('insert into auth.users values ($1)', [visitor]);
     await db.exec('set role service_role');
+    assert.deepEqual((await db.query('select public.selection_rankings() as rankings')).rows[0].rankings, []);
+    assert.equal((await db.query('select public.selection_sync_gate($1) as result', [visitor])).rows[0].result.status, 'ok');
+    const items = [{ slot: 'her', provider: 'tmdb', provider_id: '1245',
+      name: 'Test celebrity', category: 'woman', image: '', subtitle: 'Actor' }];
+    const sync = async (revision, payload) => (await db.query(
+      'select public.sync_visitor_selections($1,$2,$3,$4::jsonb) as result',
+      [visitor, revision, randomUUID(), JSON.stringify(payload)])).rows[0].result;
+    assert.equal((await sync(0, items)).revision, 1, 'RPC can write all four tables without caller write grants');
+    const cached = await db.query(`select c.name from public.celebrity_sources s
+      join public.celebrities c on c.id = s.celebrity_id
+      where s.provider = 'tmdb' and s.provider_id = '1245'`);
+    assert.equal(cached.rows[0].name, 'Test celebrity', 'server metadata cache join remains readable');
+    assert.equal((await db.query('select public.selection_rankings() as rankings')).rows[0].rankings[0].votes, 1);
+    for (const table of ['visitor_selections', 'visitor_sync_state']) {
+      await assert.rejects(db.query(`select * from public.${table}`), error => error.code === '42501');
+    }
+    for (const table of tables) {
+      await assert.rejects(db.query(`delete from public.${table}`), error => error.code === '42501');
+    }
+    assert.equal((await sync(1, [])).revision, 2, 'RPC can remove selections and update state');
     assert.deepEqual((await db.query('select public.selection_rankings() as rankings')).rows[0].rankings, []);
     await db.exec('reset role');
   } finally { await db.close(); }

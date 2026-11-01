@@ -42,9 +42,11 @@ alter table public.visitor_selections enable row level security;
 alter table public.visitor_sync_state enable row level security;
 -- No browser table grants or policies. Only the server may access these tables.
 revoke all on public.celebrities, public.celebrity_sources,
-  public.visitor_selections, public.visitor_sync_state from public, anon, authenticated;
-grant all on public.celebrities, public.celebrity_sources,
-  public.visitor_selections, public.visitor_sync_state to service_role;
+  public.visitor_selections, public.visitor_sync_state from public, anon, authenticated, service_role;
+-- Reset service_role defaults too: the server only reads the metadata cache
+-- directly. All selection/state access and writes use the owner privileges of
+-- the SECURITY DEFINER RPCs below (run this migration as postgres).
+grant select on public.celebrities, public.celebrity_sources to service_role;
 
 create function public.selection_rankings()
 returns jsonb language sql stable security definer set search_path = '' as $$
