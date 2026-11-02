@@ -12,7 +12,7 @@ function browser() {
     console, crypto: { randomUUID }, setInterval() {},
     setTimeout(fn) { timers.push(fn); return timers.length; }, clearTimeout() {},
     localStorage: { getItem: key => saved.get(key) || null, setItem: (key, value) => saved.set(key, value) },
-    navigator: { locks: { request: async (_name, fn) => fn() } },
+    navigator: { locks: { request: async (_name, _options, fn) => fn({}) } },
     document: { hidden: false }, window: { addEventListener: (name, fn) => { events[name] = fn; } },
     people: [], herList: [], hisList: [], updateRankings() {}, renderLists() {}, loadLists() {},
     fetch: async (url, options) => {
@@ -26,6 +26,7 @@ function browser() {
     "const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.118.0');",
     'const createClient = () => sdk;');
   context.sdk = client;
+  vm.runInContext(readFileSync(join(__dirname, '../js/browser-lock.js'), 'utf8'), context);
   vm.runInContext(source, context);
   return { context, saved, timers, posts,
     run: code => vm.runInContext(code, context),
@@ -117,4 +118,21 @@ test('unavailable rankings or unsupported browser leaves local lists intact with
   unsupported.context.herList = [{ id: 'tmdb-1' }];
   await unsupported.run('rankingSync.start()');
   assert.equal(unsupported.posts.length, 0); assert.equal(unsupported.context.herList[0].id, 'tmdb-1');
+});
+
+test('private agreement fields in local lists, snapshots and persisted retries never enter ranking requests', async () => {
+  const b = browser();
+  b.context.herList = [{ id: 'tmdb-1', name: 'PRIVATE_PERSON', signature: 'PRIVATE_SIGNATURE', pdf: 'PRIVATE_PDF' }];
+  await b.run('rankingSync.start()'); await b.flush();
+  const state = JSON.parse(b.saved.get(SYNC));
+  state.pending = { her: ['tmdb-1'], his: [], revision: state.revision, requestId: randomUUID(),
+    herName: 'PRIVATE_PERSON', signature: 'PRIVATE_SIGNATURE', pdf: 'PRIVATE_PDF' };
+  b.saved.set(SYNC, JSON.stringify(state));
+  b.saved.set(SNAPSHOT, JSON.stringify({ her: ['tmdb-1'], his: [], herName: 'PRIVATE_PERSON' }));
+  b.run('rankingSync.retry()'); await new Promise(resolve => setImmediate(resolve)); await b.flush();
+  assert.equal(b.posts.length, 2);
+  for (const post of b.posts) {
+    assert.deepEqual(Object.keys(post).sort(), ['her', 'his', 'requestId', 'revision']);
+    assert.ok(!JSON.stringify(post).includes('PRIVATE_'));
+  }
 });

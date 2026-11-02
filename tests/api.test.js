@@ -146,3 +146,26 @@ test('public response never exposes service keys; disabled configuration fails c
     const disabled = response(); await rankings({ method: 'GET' }, disabled); assert.equal(disabled.code, 503);
   } finally { global.fetch = original; }
 });
+
+test('all outbound Supabase requests exclude injected agreement names, signatures and PDF contents', async () => {
+  configure(); const original = global.fetch; const outbound = []; const id = randomUUID();
+  try {
+    global.fetch = async (url, options) => {
+      outbound.push({ url, options });
+      if (url.endsWith('/auth/v1/user')) return { ok: true, json: async () => ({ id, is_anonymous: true }) };
+      if (url.includes('/celebrity_sources?')) return { ok: true, json: async () => [{ celebrities: {
+        name: 'Provider celebrity', category: 'other', image: '', subtitle: '' } }] };
+      return { ok: true, json: async () => ({ status: 'ok', revision: 1 }) };
+    };
+    const res = response();
+    await selections({ method: 'POST', headers: { origin: process.env.SITE_ORIGIN,
+      'content-type': 'application/json', authorization: 'Bearer visitor-token' }, body: {
+      ...valid(), herName: 'PRIVATE_PERSON', hisName: 'PRIVATE_PARTNER', signature: 'PRIVATE_SIGNATURE',
+      pdf: 'PRIVATE_PDF', metadata: { name: 'PRIVATE_PERSON' }, visitorId: 'PRIVATE_ID' } }, res);
+    assert.equal(res.code, 200); assert.equal(outbound.length, 4);
+    assert.ok(!JSON.stringify(outbound).includes('PRIVATE_'));
+    const rpc = JSON.parse(outbound[3].options.body);
+    assert.equal(rpc.p_visitor, id);
+    assert.deepEqual(Object.keys(rpc.p_items[0]).sort(), ['category','image','name','provider','provider_id','slot','subtitle']);
+  } finally { global.fetch = original; }
+});

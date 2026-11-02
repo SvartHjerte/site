@@ -10,6 +10,11 @@ const rankingSync = (() => {
   function snapshot() {
     return { her: herList.map(p => p.id), his: hisList.map(p => p.id) };
   }
+  function selections(value) {
+    const ids = slot => (Array.isArray(value?.[slot]) ? value[slot] : [])
+      .filter(id => typeof id === 'string' && /^(tmdb|sportsdb|audiodb)-[1-9][0-9]{0,11}$/.test(id)).slice(0, 5);
+    return { her: ids('her'), his: ids('his') };
+  }
   function status(value, error = false) {
     message = value; failed = error; updateRankings();
   }
@@ -60,9 +65,8 @@ const rankingSync = (() => {
     });
   }
   async function synchronize() {
-    // One network writer across tabs. Supabase's SDK separately locks session
-    // refreshes. Never silently fall back to unlocked revision updates.
-    await navigator.locks.request('cheatlist-ranking-writer', async () => {
+    // One network writer across tabs, including browsers without Web Locks.
+    await browserLock.request('cheatlist-ranking-writer', -1, async () => {
       const { data: { session }, error } = await client.auth.getSession();
       if (error || !session) {
         status('Your lists are saved on this device. The visitor session is unavailable.', true);
@@ -71,7 +75,7 @@ const rankingSync = (() => {
       let state = read(SYNC);
       if (!state || state.visitor !== session.user.id)
         state = { visitor: session.user.id, revision: 0, confirmed: null, pending: null };
-      const latest = read(SNAPSHOT) || snapshot();
+      const latest = selections(read(SNAPSHOT) || snapshot());
       if (!state.pending && JSON.stringify(latest) === JSON.stringify(state.confirmed)) {
         await refresh(); status('Rankings reflect current visitor selections.'); return;
       }
@@ -82,7 +86,9 @@ const rankingSync = (() => {
       status('Updating shared rankings...');
       const response = await fetch('/api/selections', {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify(state.pending)
+        // Persisted browser data is untrusted too. Never forward extra fields.
+        body: JSON.stringify({ ...selections(state.pending), revision: state.pending.revision,
+          requestId: state.pending.requestId })
       });
       const result = await response.json();
       if (response.status === 409) {
@@ -107,7 +113,7 @@ const rankingSync = (() => {
       retryDelay = 1000;
       status('Rankings reflect current visitor selections.');
       await refresh();
-      if (JSON.stringify(read(SNAPSHOT) || snapshot()) !== JSON.stringify(state.confirmed)) schedule();
+      if (JSON.stringify(selections(read(SNAPSHOT) || snapshot())) !== JSON.stringify(state.confirmed)) schedule();
     });
   }
   async function start() {
@@ -115,13 +121,14 @@ const rankingSync = (() => {
     starting = true;
     try {
       const cfg = await refresh();
-      if (!navigator.locks) { status('Shared rankings are available. Use an updated browser to include your selections.'); return; }
+      if (!browserLock.supported) { status('Shared rankings are available. Enable browser storage to include your selections.'); return; }
       const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.118.0');
       client = createClient(cfg.supabaseUrl, cfg.publishableKey, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false }
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false,
+          lock: browserLock.request }
       });
       // Serialize first sign-in too, preventing two tabs from creating identities.
-      await navigator.locks.request('cheatlist-ranking-writer', async () => {
+      await browserLock.request('cheatlist-ranking-writer', -1, async () => {
         const { data: { session }, error } = await client.auth.getSession();
         if (error) throw error;
         if (!session) {
@@ -139,13 +146,13 @@ const rankingSync = (() => {
   }
   function retry() {
     if (!started) { start(); return; }
-    navigator.locks.request('cheatlist-ranking-writer', () => {
+    browserLock.request('cheatlist-ranking-writer', -1, () => {
       const state = read(SYNC);
       if (state && conflictRevision !== null) {
         state.revision = conflictRevision; state.pending = null;
         localStorage.setItem(SYNC, JSON.stringify(state)); conflictRevision = null;
       }
-    }).then(() => schedule(0));
+    }).then(() => schedule(0)).catch(() => status('Browser storage is unavailable. Your lists remain on this device.', true));
   }
   window.addEventListener('online', () => started ? schedule(0) : start());
   window.addEventListener('storage', event => {

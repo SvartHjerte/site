@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { readFileSync } = require('node:fs');
+const { readFileSync, readdirSync } = require('node:fs');
 const { join } = require('node:path');
 const { PGlite } = require('@electric-sql/pglite');
 const { randomUUID } = require('node:crypto');
@@ -32,7 +32,13 @@ test('migration revokes browser/PUBLIC access even with permissive object defaul
       assert.equal(probe.function_access, true);
     }
     await db.exec('drop table public.default_grant_probe; drop function public.default_function_probe();');
-    await db.exec(readFileSync(join(__dirname, '../supabase/migrations/202610310001_rankings.sql'), 'utf8'));
+    for (const file of readdirSync(join(__dirname, '../supabase/migrations')).sort()) {
+      await db.exec(readFileSync(join(__dirname, '../supabase/migrations', file), 'utf8'));
+    }
+    for (const role of ['anon', 'authenticated', 'service_role']) {
+      assert.equal((await db.query('select has_function_privilege($1, $2, $3) as allowed',
+        [role, 'public.merge_celebrity_alias(uuid,uuid)', 'EXECUTE'])).rows[0].allowed, false);
+    }
 
     const tables = ['celebrities', 'celebrity_sources', 'visitor_selections', 'visitor_sync_state'];
     const functions = ['selection_rankings()', 'selection_sync_gate(uuid)', 'sync_visitor_selections(uuid,bigint,uuid,jsonb)'];

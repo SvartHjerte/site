@@ -4,6 +4,9 @@ This is a local implementation. No migration has been applied, no Auth settings
 have been changed, and nothing has been deployed to the existing project
 `zintkdgpbueciyyydzzp`. Rankings stay disabled until explicitly configured.
 
+See [PRODUCTION-READINESS.md](PRODUCTION-READINESS.md) for the current alias
+maintenance, browser fallback, retention review and remaining launch checklist.
+
 ## Architecture
 
 The existing static website and PDF API remain in place. `/api/selections` is a
@@ -29,14 +32,17 @@ provider IDs converge under transaction locks. **Different providers are not
 automatically merged by display name**: names are not reliable identity proof.
 Cross-provider aliases require a reviewed, authoritative mapping to the same
 canonical UUID. Until such mappings exist, a person represented by different
-providers can appear separately. Review this limitation before launch; merging
-existing canonical rows must move selections and source mappings atomically.
+providers can appear separately. The second, unapplied migration provides an
+administrator-only atomic merge for confirmed aliases, including existing votes.
+Review and record authoritative evidence before using it; no display-name
+matching or unverified alias data is shipped.
 
 Browser lists and PDF inputs keep their existing localStorage keys. The browser
 uses the pinned Supabase JS SDK `2.118.0` from esm.sh for persisted anonymous
 sessions and token refresh. Web Locks serialize initial sign-in and sync across
-tabs. Browsers without Web Locks retain local list/PDF functionality and can
-read rankings, but do not sync. No framework or build step is introduced.
+tabs, with an IndexedDB transaction fallback also used for SDK Auth locks.
+Browsers with neither facility retain local lists/PDFs and aggregate reads, but
+do not sync. No framework or build step is introduced.
 
 Retries reuse persisted requests. Network failures back off to 60 seconds; HTTP
 429 waits a minute. Rejected stale requests require an explicit retry before

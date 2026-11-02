@@ -9,6 +9,7 @@ function endpoint() {
   const rendered = [], options = []; let closed = 0, launched = 0;
   const context = {
     Buffer, console: { error() {} }, module: { exports: {} },
+    fetch() { assert.fail('PDF generation must not send agreement data to Supabase or any other service'); },
     require(name) {
       if (name === '../lib/agreement-design') return require('../lib/agreement-design');
       if (name === '@sparticuz/chromium') return { executablePath: async () => '/test/chromium', args: [] };
