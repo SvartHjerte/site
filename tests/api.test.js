@@ -37,9 +37,11 @@ test('Supabase accepts the existing anon variable, preserves publishable precede
   }
 });
 
-test('CAPTCHA is optional in development, production stays protected, and unset enable flag disables both APIs', async () => {
+test('CAPTCHA is optional in development and Vercel Preview, production stays protected, and unset enable flag disables both APIs', async () => {
   configure(); const oldNodeEnv = process.env.NODE_ENV; const original = global.fetch;
+  const oldVercelEnv = process.env.VERCEL_ENV;
   try {
+    delete process.env.VERCEL_ENV;
     delete process.env.TURNSTILE_SITE_KEY;
     process.env.NODE_ENV = 'development';
     assert.ok(config());
@@ -48,6 +50,14 @@ test('CAPTCHA is optional in development, production stays protected, and unset 
     assert.equal(res.code, 200); assert.equal(res.body.turnstileSiteKey, '');
     assert.deepEqual(Object.keys(res.body).sort(), ['publishableKey', 'rankings', 'supabaseUrl', 'turnstileSiteKey']);
     process.env.NODE_ENV = 'production'; assert.throws(config);
+    process.env.VERCEL_ENV = 'preview';
+    assert.ok(config());
+    const preview = response(); await rankings({ method: 'GET' }, preview);
+    assert.equal(preview.code, 200); assert.equal(preview.body.turnstileSiteKey, '');
+    process.env.VERCEL_ENV = 'production'; assert.throws(config);
+    process.env.NODE_ENV = 'development'; assert.throws(config);
+    process.env.TURNSTILE_SITE_KEY = 'site-key'; assert.ok(config());
+    delete process.env.VERCEL_ENV;
     process.env.NODE_ENV = 'development'; delete process.env.RANKINGS_ENABLED;
     global.fetch = async () => { assert.fail('Disabled APIs must not contact Supabase'); };
     for (const [handler, method] of [[rankings, 'GET'], [selections, 'POST']]) {
@@ -56,6 +66,7 @@ test('CAPTCHA is optional in development, production stays protected, and unset 
   } finally {
     global.fetch = original;
     if (oldNodeEnv === undefined) delete process.env.NODE_ENV; else process.env.NODE_ENV = oldNodeEnv;
+    if (oldVercelEnv === undefined) delete process.env.VERCEL_ENV; else process.env.VERCEL_ENV = oldVercelEnv;
     configure();
   }
 });
