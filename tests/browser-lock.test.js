@@ -45,7 +45,7 @@ test('real IndexedDB fallback serializes tabs, nested Auth locks, failures, time
         });
       });
 
-      await a.waitForFunction('window.entered === true');
+      await a.waitForFunction('window.entered === true', { polling: 100, timeout: 5000 });
       assert.equal(await b.evaluate(async () => {
         try { await browserLock.request('writer', 20, () => 'unexpected'); }
         catch (error) { return error.message; }
@@ -58,7 +58,7 @@ test('real IndexedDB fallback serializes tabs, nested Auth locks, failures, time
           window.entered = true; await new Promise(() => {});
         });
       });
-      await a.waitForFunction('window.entered === true');
+      await a.waitForFunction('window.entered === true', { polling: 100, timeout: 5000 });
       const waiting = b.evaluate(() => browserLock.request('writer', 5000, () => 'after-close'));
 
       await a.close();
@@ -99,7 +99,8 @@ test('real IndexedDB fallback serializes tabs, nested Auth locks, failures, time
       `;
       await Promise.all([b.addScriptTag({ content: fixture + rankings }), c.addScriptTag({ content: fixture + rankings })]);
       await Promise.all([b.evaluate(() => rankingSync.start()), c.evaluate(() => rankingSync.start())]);
-      await b.waitForFunction("JSON.parse(localStorage.getItem('cheatListRankingSync') || '{}').revision === 1");
+      // Poll background tabs without depending on throttled animation frames.
+      await b.waitForFunction("JSON.parse(localStorage.getItem('cheatListRankingSync') || '{}').revision === 1", { polling: 100, timeout: 5000 });
       assert.equal(await b.evaluate(() => localStorage.getItem('sign-ins')), '1');
       assert.equal(await b.evaluate(() => localStorage.getItem('posts')), '1');
     } finally {

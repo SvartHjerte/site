@@ -6,6 +6,8 @@ have been changed, and nothing has been deployed to the existing project
 
 See [PRODUCTION-READINESS.md](PRODUCTION-READINESS.md) for the current alias
 maintenance, browser fallback, retention review and remaining launch checklist.
+For manual read-only SQL Editor checks and result interpretation, use
+[supabase/SECURITY-AUDIT.md](supabase/SECURITY-AUDIT.md).
 
 ## Architecture
 
