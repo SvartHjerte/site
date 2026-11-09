@@ -37,7 +37,7 @@ test('Supabase accepts the existing anon variable, preserves publishable precede
   }
 });
 
-test('CAPTCHA is optional in development and Vercel Preview, production stays protected, and unset enable flag disables both APIs', async () => {
+test('CAPTCHA is optional in every environment and unset enable flag disables both APIs', async () => {
   configure(); const oldNodeEnv = process.env.NODE_ENV; const original = global.fetch;
   const oldVercelEnv = process.env.VERCEL_ENV;
   try {
@@ -49,13 +49,15 @@ test('CAPTCHA is optional in development and Vercel Preview, production stays pr
     const res = response(); await rankings({ method: 'GET' }, res);
     assert.equal(res.code, 200); assert.equal(res.body.turnstileSiteKey, '');
     assert.deepEqual(Object.keys(res.body).sort(), ['publishableKey', 'rankings', 'supabaseUrl', 'turnstileSiteKey']);
-    process.env.NODE_ENV = 'production'; assert.throws(config);
+    process.env.NODE_ENV = 'production'; assert.ok(config());
     process.env.VERCEL_ENV = 'preview';
     assert.ok(config());
     const preview = response(); await rankings({ method: 'GET' }, preview);
     assert.equal(preview.code, 200); assert.equal(preview.body.turnstileSiteKey, '');
-    process.env.VERCEL_ENV = 'production'; assert.throws(config);
-    process.env.NODE_ENV = 'development'; assert.throws(config);
+    process.env.VERCEL_ENV = 'production'; assert.ok(config());
+    const production = response(); await rankings({ method: 'GET' }, production);
+    assert.equal(production.code, 200); assert.equal(production.body.turnstileSiteKey, '');
+    process.env.NODE_ENV = 'development'; assert.ok(config());
     process.env.TURNSTILE_SITE_KEY = 'site-key'; assert.ok(config());
     delete process.env.VERCEL_ENV;
     process.env.NODE_ENV = 'development'; delete process.env.RANKINGS_ENABLED;

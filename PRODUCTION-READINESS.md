@@ -108,13 +108,13 @@ merged from master.
 - Apply reviewed migrations only with separate authorization; verify owner and
   grants against the actual project and test representative alias merges.
 - Configure server-only service credentials, public key, exact `SITE_ORIGIN`,
-  provider keys, anonymous Auth, Turnstile secret in Auth and public site key,
-  Auth signup limits, and platform/IP request limits. Keep rankings disabled
-  until the rollout is approved. No environment values were changed here.
+  provider keys, anonymous Auth, Auth signup limits, and platform/IP request
+  limits. The selected rollout does not require CAPTCHA or Cloudflare. Keep
+  rankings disabled until the rollout is approved. No environment values were changed here.
 - Rotate the TMDB key exposed on master/in Git history. Confirm production
   access/quotas for SportsDB and AudioDB rather than relying on public demo keys.
-- Confirm CSP/network access to the pinned Supabase SDK CDN and Turnstile.
-- Complete hosted staging checks for real Auth, CAPTCHA, providers, multi-tab
+- Confirm CSP/network access to the pinned Supabase SDK CDN.
+- Complete hosted staging checks for real Auth, providers, multi-tab
   sessions, token refresh, offline retries, and deployment-platform PDF rendering.
 - Approve the alias review process, retention policy, cleanup implementation and
   user-facing disclosure; exercise recovery after identity expiration.

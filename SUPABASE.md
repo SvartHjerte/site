@@ -61,9 +61,9 @@ the browser through the ranking integration.
    `supabase db push`, migrations, deployment commands, or enable anonymous Auth
    as part of local development.
 3. Configure anonymous sign-ins and Auth rate limits after the security audit
-   and separate authorization. CAPTCHA is optional for initial local testing;
-   see below. For a later public rollout, configure the Turnstile secret in
-   Supabase, never in a public file, and its site key in the server environment.
+   and separate authorization. CAPTCHA is optional in every environment; no
+   Cloudflare account is required. Leave `TURNSTILE_SITE_KEY` blank for the
+   selected rollout without CAPTCHA.
 4. Copy `.env.example` into your local server environment. Set the project's
    public key in `SUPABASE_ANON_KEY` (legacy anon key) or
    `SUPABASE_PUBLISHABLE_KEY` (takes precedence when nonempty), server-only service-role key and
@@ -73,13 +73,12 @@ the browser through the ranking integration.
 5. Add platform firewall/IP rate limits for `/api/selections` and
    `/api/rankings` before public rollout. The DB enforces 30 authenticated sync
    attempts per minute per visitor across all server instances, including
-   requests that fail provider validation. CAPTCHA and Auth signup rate limits
-   are needed to resist attackers creating many anonymous identities. Application
+   requests that fail provider validation. Auth signup rate limits
+   also help limit creation of anonymous identities. Application
    limits alone do not prevent distributed abuse. Origin checks are additional
    defense, not a substitute for authentication or rate limits.
 6. Set `RANKINGS_ENABLED=true` in the server environment only when ready.
-   Production configuration fails closed without a Turnstile site key. A site
-   key alone does not enable CAPTCHA in Supabase; step 3 is required.
+   The selected rollout uses anonymous Auth and rate limits without CAPTCHA.
 7. Test via a local Vercel-compatible server. Opening `index.html` directly or
    using a static-only server cannot run `/api/*`; lists, search and printable
    agreements remain available, while shared rankings show an unavailable state.
@@ -106,9 +105,9 @@ future deployment, or bundle the SDK before adopting a stricter CSP.
    Turnstile script or anonymous sign-in is started when rankings are disabled.
 
 The application already permits anonymous sign-in without a CAPTCHA token when
-`TURNSTILE_SITE_KEY` is blank outside production. Authentication, origin checks,
+`TURNSTILE_SITE_KEY` is blank, including in production. Authentication, origin checks,
 payload validation, database rate limits, RLS and service-only RPC permissions
-remain in place. Production still fails closed without a Turnstile site key.
+remain in place. CAPTCHA is an optional additional control.
 
 Future end-to-end sync testing needs a separately authorized isolated Supabase
 test environment with the schema installed, anonymous sign-ins enabled, and
@@ -129,7 +128,7 @@ The dev-only PGlite dependency executes the actual migration and SQL functions
 in an isolated, in-memory PostgreSQL engine with mock Supabase roles/Auth table.
 No test contacts Supabase, changes Auth settings, or uses a hosted database.
 API tests mock all network calls. This does not replace an eventual approved
-staging test against Supabase Auth, the real providers, CAPTCHA and Vercel.
+staging test against Supabase Auth, the real providers and Vercel.
 
 Clearing browser storage loses the anonymous identity. Its selections remain
 until an authorized server cleanup removes that Auth user (FK cascade removes
