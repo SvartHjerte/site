@@ -90,7 +90,13 @@ const rankingSync = (() => {
         body: JSON.stringify({ ...selections(state.pending), revision: state.pending.revision,
           requestId: state.pending.requestId })
       });
-      const result = await response.json();
+      // Protection pages and gateway errors may return HTML instead of JSON.
+      // Keep the persisted request until an application acknowledgment arrives.
+      let result;
+      try { result = await response.json(); } catch {
+        status('Your lists are saved here. The ranking service returned an unexpected response. Please retry.', true);
+        return;
+      }
       if (response.status === 409) {
         conflictRevision = result.revision;
         status('Another update reached shared rankings first. Your lists remain saved here. Retry to use your current lists.', true);
@@ -101,11 +107,20 @@ const rankingSync = (() => {
       }
       if (!response.ok) {
         if (response.status >= 500) throw new Error('Sync unavailable');
-        if (response.status !== 401) {
+        if (response.status === 400 || response.status === 422) {
           state.pending = null; localStorage.setItem(SYNC, JSON.stringify(state));
         }
-        status('Your lists are saved here. Shared rankings could not validate this update. Please retry.', true); return;
+        const reason = response.status === 401
+          ? 'Your visitor session needs to be restored. Please retry.'
+          : response.status === 403
+            ? 'This deployment is not authorized to synchronize rankings.'
+            : response.status === 400 || response.status === 422
+              ? 'Shared rankings could not validate this update. Check your selections and retry.'
+              : 'The ranking service rejected this request. Please retry.';
+        status(`Your lists are saved here. ${reason}`, true); return;
       }
+      if (!Number.isSafeInteger(result.revision) || result.revision <= state.pending.revision)
+        throw new Error('Invalid synchronization acknowledgment');
       state.revision = result.revision;
       state.confirmed = { her: state.pending.her, his: state.pending.his };
       state.pending = null;

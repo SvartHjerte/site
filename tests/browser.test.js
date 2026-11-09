@@ -136,3 +136,32 @@ test('private agreement fields in local lists, snapshots and persisted retries n
     assert.ok(!JSON.stringify(post).includes('PRIVATE_'));
   }
 });
+
+test('authentication and origin failures preserve the exact pending update and explain the cause', async () => {
+  for (const [status, message] of [[401, /visitor session/], [403, /not authorized/]]) {
+    const b = browser(); const normal = b.context.fetch;
+    b.context.fetch = async (url, options) => url === '/api/selections'
+      ? { ok: false, status, json: async () => ({ error: 'Rejected' }) } : normal(url, options);
+    await b.run('rankingSync.start()'); await b.flush();
+    const pending = JSON.parse(b.saved.get(SYNC)).pending;
+    assert.ok(pending); assert.match(b.run('rankingSync.message'), message);
+    b.context.fetch = normal;
+    b.run('rankingSync.retry()'); await new Promise(resolve => setImmediate(resolve)); await b.flush();
+    assert.equal(b.posts[0].requestId, pending.requestId);
+  }
+});
+
+test('HTML protection responses and malformed acknowledgments never discard pending selections', async () => {
+  for (const html of [true, false]) {
+    const b = browser(); const normal = b.context.fetch;
+    b.context.fetch = async (url, options) => url === '/api/selections'
+      ? { ok: !html, status: html ? 401 : 200, json: async () => {
+        if (html) throw new SyntaxError('HTML response');
+        return {};
+      } } : normal(url, options);
+    await b.run('rankingSync.start()'); await b.flush();
+    assert.ok(JSON.parse(b.saved.get(SYNC)).pending);
+    assert.equal(JSON.parse(b.saved.get(SYNC)).confirmed, null);
+    assert.doesNotMatch(b.run('rankingSync.message'), /could not validate/);
+  }
+});
