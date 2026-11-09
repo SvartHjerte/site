@@ -1,7 +1,7 @@
 const chromium = require("@sparticuz/chromium");
 const puppeteer = require("puppeteer-core");
 
-const { buildAgreement } = require('../lib/agreement-design');
+const { buildAgreement, fitAgreement } = require('../lib/agreement-design');
 
 function parseRequestBody(body) {
   if (Buffer.isBuffer(body)) body = body.toString('utf8');
@@ -73,9 +73,15 @@ module.exports = async function (req, res) {
       waitUntil: "load"
     });
 
+    // Measure the actual print layout, including wrapped names/subtitles. Keep
+    // the border full size and scale only the content when it needs more room.
+    await page.emulateMediaType('print');
+    await page.evaluate(fitAgreement);
+
     const pdf = await page.pdf({
       landscape: true,
       format: "Letter",
+      preferCSSPageSize: true,
       printBackground: true,
       margin: {
         top: "0in",

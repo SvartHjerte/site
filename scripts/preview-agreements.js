@@ -2,7 +2,7 @@
 const { mkdirSync, writeFileSync } = require('node:fs');
 const { join } = require('node:path');
 const puppeteer = require('puppeteer-core');
-const { buildAgreement } = require('../lib/agreement-design');
+const { buildAgreement, fitAgreement } = require('../lib/agreement-design');
 async function main() {
   const executablePath = process.argv[2];
   if (!executablePath) throw new Error('Pass the path to a local Chrome executable.');
@@ -21,12 +21,15 @@ async function main() {
           herList: names.map(name => ({ name: stress ? name + ' — A very long celebrity display name' : name, subtitle: 'Actor / Screen & stage' })),
           hisList: others.map(name => ({ name, subtitle: 'Actor / Screen & stage' })) };
         await page.setContent(buildAgreement(body, type), { waitUntil: 'load' });
+        await page.emulateMediaType('print');
+        await page.evaluate(fitAgreement);
         const fit = await page.evaluate(() => {
           const article = document.querySelector('.agreement').getBoundingClientRect();
           return { bottom: article.bottom, width: document.documentElement.scrollWidth,
-            logo: document.querySelector('.logo').naturalWidth > 0 };
+            logo: document.querySelector('.logo').naturalWidth > 0,
+            contentBottom: document.querySelector('.agreement-content').getBoundingClientRect().bottom };
         });
-        if (fit.bottom > 789 || fit.width > 1056 || !fit.logo) throw new Error(`${type} ${stress ? 'long' : 'normal'} layout failed: ${JSON.stringify(fit)}`);
+        if (fit.bottom > 789 || fit.width > 1056 || fit.contentBottom > 765 || !fit.logo) throw new Error(`${type} ${stress ? 'long' : 'normal'} layout failed: ${JSON.stringify(fit)}`);
         const file = `${type}${stress ? '-long-names' : ''}`;
         const pdf = await page.pdf({ path: join(output, `${file}.pdf`), format: 'Letter', landscape: true, printBackground: true });
         const pages = Buffer.from(pdf).toString('latin1').match(/\/Type\s*\/Page\b/g) || [];

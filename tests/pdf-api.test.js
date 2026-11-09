@@ -16,6 +16,7 @@ function endpoint() {
       if (name === 'puppeteer-core') return { launch: async () => {
         launched++;
         return { newPage: async () => ({ setContent: async html => rendered.push(html),
+          emulateMediaType: async type => assert.equal(type, 'print'), evaluate: async () => {},
           pdf: async config => { options.push(config); return Buffer.from('%PDF-test'); } }),
         close: async () => { closed++; } };
       } };
