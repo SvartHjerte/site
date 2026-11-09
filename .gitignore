@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.vercel/
+supabase/.temp/
+.aws/
+.npmrc
+*.pem
+*.key
+credentials.json
+*service-account*.json
+artifacts/pdf-samples/

@@ -3,29 +3,17 @@
 // =========================
 
 function saveVotes() {
-  localStorage.setItem("cheatListPeople", JSON.stringify(people));
+  // Popularity is server-owned; do not persist or upload browser vote totals.
 }
 
 function loadVotes() {
-  const saved = localStorage.getItem("cheatListPeople");
-
-  if (!saved) {
-    people = [...defaultPeople];
-    return;
-  }
-
-  try {
-    const parsed = JSON.parse(saved);
-    people = Array.isArray(parsed) ? mergeDefaultMetadata(parsed) : [...defaultPeople];
-  } catch (error) {
-    console.error("Failed to load saved votes:", error);
-    people = [...defaultPeople];
-  }
+  people = defaultPeople.map(person => ({ ...person, votes: 0 }));
 }
 
 function saveLists() {
   localStorage.setItem("cheatListHerList", JSON.stringify(herList));
   localStorage.setItem("cheatListHisList", JSON.stringify(hisList));
+  rankingSync.changed();
 }
 
 function loadLists() {
@@ -33,16 +21,27 @@ function loadLists() {
   const savedHis = localStorage.getItem("cheatListHisList");
 
   try {
-    herList = savedHer ? JSON.parse(savedHer) : [];
+    herList = sanitizeSavedList(savedHer);
   } catch (error) {
     console.error("Failed to load her list:", error);
     herList = [];
   }
 
   try {
-    hisList = savedHis ? JSON.parse(savedHis) : [];
+    hisList = sanitizeSavedList(savedHis);
   } catch (error) {
     console.error("Failed to load his list:", error);
     hisList = [];
   }
+}
+
+function sanitizeSavedList(raw) {
+  const parsed = raw ? JSON.parse(raw) : [];
+  if (!Array.isArray(parsed)) return [];
+  const seen = new Set();
+  return parsed.filter(person => {
+    if (!person || typeof person.name !== 'string' ||
+        !/^(tmdb|sportsdb|audiodb)-[1-9][0-9]{0,11}$/.test(person.id) || seen.has(person.id)) return false;
+    seen.add(person.id); return true;
+  }).slice(0, MAX_LIST_ITEMS);
 }
