@@ -6,16 +6,17 @@ const { Readable } = require('node:stream');
 const vm = require('node:vm');
 
 function endpoint() {
-  const rendered = [], options = []; let closed = 0, launched = 0; let pdfFailure = false, counted = 0;
+  const rendered = [], options = []; let closed = 0, launched = 0; let pdfFailure = false, counted = 0, extractions = 0, busy = false;
   const context = {
-    Buffer, console: { error() {} }, module: { exports: {} },
+    Buffer, setTimeout, console: { error() {} }, module: { exports: {} },
     fetch() { assert.fail('PDF generation must not send agreement data to Supabase or any other service'); },
     require(name) {
       if (name === '../lib/pdf-rankings') return { recordPDFChoices: async () => { counted++; return 'counted'; } };
       if (name === '../lib/agreement-design') return require('../lib/agreement-design');
-      if (name === '@sparticuz/chromium') return { executablePath: async () => '/test/chromium', args: [] };
+      if (name === '@sparticuz/chromium') return { executablePath: async () => { extractions++; await Promise.resolve(); return '/test/chromium'; }, args: [] };
       if (name === 'puppeteer-core') return { launch: async () => {
         launched++;
+        if (busy) { busy = false; throw new Error("spawn ETXTBSY"); }
         return { newPage: async () => ({ setContent: async html => rendered.push(html),
           emulateMediaType: async type => assert.equal(type, 'print'), evaluate: async () => {},
           pdf: async config => { options.push(config); if (pdfFailure) throw new Error('Chromium failed'); return Buffer.from('%PDF-test'); } }),
@@ -25,7 +26,7 @@ function endpoint() {
     }
   };
   vm.runInNewContext(readFileSync(join(__dirname, '../api/agreement-pdf.js'), 'utf8'), context);
-  return { handler: context.module.exports, rendered, options, get closed() { return closed; }, get launched() { return launched; }, get counted() { return counted; }, failPDF() { pdfFailure = true; } };
+  return { handler: context.module.exports, rendered, options, get closed() { return closed; }, get launched() { return launched; }, get counted() { return counted; }, failPDF() { pdfFailure = true; }, busyOnce() { busy = true; }, get extractions() { return extractions; } };
 }
 function response() {
   return { headers: {}, setHeader(name, value) { this.headers[name] = value; }, end(body) { this.body = body; } };
@@ -110,4 +111,14 @@ test('only successfully rendered PDFs call the vote recorder', async () => {
   await ok.handler({ method: 'POST', body: payload('her') }, res);
   assert.equal(res.statusCode, 200); assert.equal(ok.counted, 1);
   assert.equal(res.headers['X-Ranking-Status'], 'counted');
+});
+
+
+test('concurrent PDF requests share Chromium extraction and transient busy launches retry', async () => {
+ const e = endpoint(); const responses = [response(), response()];
+ await Promise.all(responses.map(res => e.handler({method:'POST',body:payload('couples')},res)));
+ assert.equal(e.extractions, 1); assert.ok(responses.every(res => res.statusCode === 200));
+ const busy = endpoint(); busy.busyOnce(); const res = response();
+ await busy.handler({method:'POST',body:payload('her')},res);
+ assert.equal(res.statusCode,200);assert.equal(busy.launched,2);assert.equal(busy.counted,1);
 });

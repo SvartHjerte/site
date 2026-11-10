@@ -4,6 +4,33 @@ const puppeteer = require("puppeteer-core");
 const { buildAgreement, fitAgreement } = require('../lib/agreement-design');
 const { recordPDFChoices } = require('../lib/pdf-rankings');
 
+// Fluid instances may receive concurrent first requests. Share extraction so
+// Chromium is not executed while another request is still writing its binary.
+let executablePathPromise;
+function executablePath() {
+  if (!executablePathPromise) {
+    executablePathPromise = chromium.executablePath().catch(error => {
+      executablePathPromise = undefined;
+      throw error;
+    });
+  }
+  return executablePathPromise;
+}
+async function launchBrowser() {
+  const path = await executablePath();
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await puppeteer.launch({
+        args: [...chromium.args, '--no-sandbox'], defaultViewport: chromium.defaultViewport,
+        executablePath: path, headless: true
+      });
+    } catch (error) {
+      if (attempt >= 2 || !String(error.code || error.message).includes('ETXTBSY')) throw error;
+      await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1)));
+    }
+  }
+}
+
 function parseRequestBody(body) {
   if (Buffer.isBuffer(body)) body = body.toString('utf8');
   if (typeof body === 'string') {
@@ -59,14 +86,7 @@ module.exports = async function (req, res) {
     if (!['her', 'his', 'couples'].includes(type)) throw new Error('Invalid agreement type');
     const html = buildAgreement(body, type);
 
-    const executablePath = await chromium.executablePath();
-
-    browser = await puppeteer.launch({
-      args: [...chromium.args, "--no-sandbox"],
-      defaultViewport: chromium.defaultViewport,
-      executablePath,
-      headless: true
-    });
+    browser = await launchBrowser();
 
     const page = await browser.newPage();
 
