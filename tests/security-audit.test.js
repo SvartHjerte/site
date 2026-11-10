@@ -34,8 +34,8 @@ test('audit reports missing installation and roles without errors or a false PAS
   try {
     const report = await audit(db);
     assert.ok(report.summary.MISSING > 0);
-    assert.equal(report.checks.filter(c => c.check_name === 'rankings_rls' && c.status === 'MISSING').length, 4);
-    assert.equal(report.rankings_tables.length, 4);
+    assert.equal(report.checks.filter(c => c.check_name === 'rankings_rls' && c.status === 'MISSING').length, 5);
+    assert.equal(report.rankings_tables.length, 5);
     assert.equal(report.storage_relations.length, 0);
   } finally { await db.close(); }
 });
@@ -47,7 +47,7 @@ test('audit matches installed migrations, preserves read-only execution and excl
     const report = await audit(db);
     assert.equal(report.summary.FAIL, undefined);
     assert.equal(report.summary.MISSING, undefined);
-    assert.equal(report.checks.filter(c => c.check_name === 'rankings_rpc_hardening' && c.status === 'PASS').length, 4);
+    assert.equal(report.checks.filter(c => c.check_name === 'rankings_rpc_hardening' && c.status === 'PASS').length, 5);
     assert.equal(report.rankings_table_permissions.find(p => p.role === 'service_role' && p.relation === 'celebrities' && p.privilege === 'SELECT').expected, true);
     assert.equal(report.existing_policies[0].name, 'example_storage_policy');
     assert.ok(!JSON.stringify(report).includes('DO_NOT_EXPOSE'));

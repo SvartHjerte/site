@@ -6,10 +6,11 @@
 with recursive
 expected_tables(name, service_select) as (values
   ('celebrities', true), ('celebrity_sources', true),
-  ('visitor_selections', false), ('visitor_sync_state', false)
+  ('visitor_selections', false), ('visitor_sync_state', false), ('pdf_choice_history', false)
 ),
 expected_rpc(signature, service_execute) as (values
   ('public.selection_rankings()', true),
+  ('public.record_pdf_choices(uuid,jsonb)', true),
   ('public.selection_sync_gate(uuid)', true),
   ('public.sync_visitor_selections(uuid,bigint,uuid,jsonb)', true),
   ('public.merge_celebrity_alias(uuid,uuid)', false)

@@ -1,3 +1,21 @@
+# Pending PDF-choice ranking release
+
+The update counts one vote per anonymous visitor and canonical celebrity only
+after a successful PDF render. Editing or clearing lists does not change totals.
+
+Before release, apply `supabase/migrations/202611100001_pdf_choice_history.sql`
+in the existing project, then deploy the matching application commit. The older
+PDF generator never logged choices, so past generated PDFs cannot be backfilled
+accurately. The migration does not treat active selections as PDF evidence.
+
+Validation: API, browser behavior, PostgreSQL migrations, alias merges, access
+permissions and read-only security audits are covered by automated tests. The
+real-browser IndexedDB test requires a browser-capable environment. Hosted PDF
+vote testing must wait for the migration; use an isolated test database to avoid
+permanent test votes in public totals.
+
+## Earlier launch checks (historical)
+
 # Rankings production readiness
 
 Prepared on feature/supabase-rankings; master merged locally on 2026-11-02.

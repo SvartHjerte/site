@@ -196,7 +196,7 @@ function generateCouplesPDF() {
   openAgreementPDF("couples");
 }
 
-function openAgreementPDF(type) {
+async function openAgreementPDF(type) {
   const herNameInput = document.getElementById("herName");
   const hisNameInput = document.getElementById("hisName");
 
@@ -219,10 +219,13 @@ function openAgreementPDF(type) {
     hisList
   };
 
-  fetch("/api/agreement-pdf", {
+  const authorization = typeof rankingSync !== 'undefined' ? await rankingSync.preparePDF() : null;
+  let rankingCounted = false;
+  return fetch("/api/agreement-pdf", {
     method: "POST",
     headers: {
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
+      ...(authorization ? { Authorization: authorization } : {})
     },
     body: JSON.stringify(payload)
   })
@@ -232,11 +235,13 @@ function openAgreementPDF(type) {
         throw new Error(text || "Failed to generate PDF.");
       }
 
+      rankingCounted = response.headers.get('X-Ranking-Status') === 'counted';
       return response.blob();
     })
     .then((blob) => {
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank");
+      if (typeof rankingSync !== 'undefined') rankingSync.pdfCompleted(rankingCounted);
     })
     .catch((error) => {
       console.error("PDF generation failed:", error);

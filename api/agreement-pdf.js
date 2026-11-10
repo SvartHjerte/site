@@ -2,6 +2,7 @@ const chromium = require("@sparticuz/chromium");
 const puppeteer = require("puppeteer-core");
 
 const { buildAgreement, fitAgreement } = require('../lib/agreement-design');
+const { recordPDFChoices } = require('../lib/pdf-rankings');
 
 function parseRequestBody(body) {
   if (Buffer.isBuffer(body)) body = body.toString('utf8');
@@ -91,6 +92,10 @@ module.exports = async function (req, res) {
       }
     });
 
+    let rankingStatus = 'unavailable';
+    try { rankingStatus = await recordPDFChoices(req, body, type); }
+    catch { console.warn('PDF generated, but its ranking choices could not be recorded.'); }
+    res.setHeader('X-Ranking-Status', rankingStatus);
     res.statusCode = 200;
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `inline; filename="${type}-agreement.pdf"`);

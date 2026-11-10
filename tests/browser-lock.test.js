@@ -85,7 +85,7 @@ test('real IndexedDB fallback serializes tabs, nested Auth locks, failures, time
               await new Promise(resolve => setTimeout(resolve, 50));
               localStorage.setItem('sign-ins', String(Number(localStorage.getItem('sign-ins') || 0) + 1));
               localStorage.setItem('test-session', JSON.stringify({ user: { id: 'same-visitor' }, access_token: 'test-token' }));
-              return {};
+              return { data: { session: JSON.parse(localStorage.getItem('test-session')) } };
             })
           } };
         }
@@ -99,10 +99,12 @@ test('real IndexedDB fallback serializes tabs, nested Auth locks, failures, time
       `;
       await Promise.all([b.addScriptTag({ content: fixture + rankings }), c.addScriptTag({ content: fixture + rankings })]);
       await Promise.all([b.evaluate(() => rankingSync.start()), c.evaluate(() => rankingSync.start())]);
-      // Poll background tabs without depending on throttled animation frames.
-      await b.waitForFunction("JSON.parse(localStorage.getItem('cheatListRankingSync') || '{}').revision === 1", { polling: 100, timeout: 5000 });
+      assert.equal(await b.evaluate(() => localStorage.getItem('sign-ins')), null);
+      const sessions = await Promise.all([b.evaluate(() => rankingSync.preparePDF()), c.evaluate(() => rankingSync.preparePDF())]);
+      assert.deepEqual(sessions, ['Bearer test-token', 'Bearer test-token']);
       assert.equal(await b.evaluate(() => localStorage.getItem('sign-ins')), '1');
-      assert.equal(await b.evaluate(() => localStorage.getItem('posts')), '1');
+      assert.equal(await b.evaluate(() => localStorage.getItem('posts')), null);
+
     } finally {
       if (browser) await browser.close();
       server.closeAllConnections();

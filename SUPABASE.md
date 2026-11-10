@@ -1,56 +1,52 @@
 # Shared celebrity rankings
 
-This is a local implementation. No migration has been applied, no Auth settings
-have been changed, and nothing has been deployed to the existing project
-`zintkdgpbueciyyydzzp`. Rankings stay disabled until explicitly configured.
+The live site currently counts active selections. The prepared PDF-choice update
+requires `supabase/migrations/202611100001_pdf_choice_history.sql` before the
+matching application release is published.
 
-See [PRODUCTION-READINESS.md](PRODUCTION-READINESS.md) for the current alias
-maintenance, browser fallback, retention review and remaining launch checklist.
-For manual read-only SQL Editor checks and result interpretation, use
-[supabase/SECURITY-AUDIT.md](supabase/SECURITY-AUDIT.md).
+## PDF-choice counting
+
+- Loading the site, searching, editing and clearing lists never adds votes.
+- After Chromium successfully generates a PDF, the server records only the
+  provider IDs actually included in that agreement: her, his, or both lists.
+- Each anonymous visitor counts once per canonical celebrity, including across
+  repeated PDFs and both lists. Totals persist after list changes or Auth cleanup.
+- Browser identity is device-specific. Clearing storage or switching browsers can
+  create a new anonymous identity; this is not a verified-person voting system.
+- Past PDFs were not logged, so their exact choices cannot be reconstructed.
+  Current selections are not automatically relabeled as generated PDFs.
 
 ## Architecture
 
-The existing static website and PDF API remain in place. `/api/selections` is a
-Vercel server function, the equivalent server-side mechanism in the approved
-plan. It verifies the bearer token against Supabase Auth, accepts **only provider
-IDs**, rate-limits the authenticated visitor, obtains trusted provider metadata,
-and calls a service-only PostgreSQL function. No browser-supplied identity,
-metadata, canonical ID, vote total, or counter is trusted.
+`/api/agreement-pdf` generates the PDF first, then calls `lib/pdf-rankings.js`.
+The helper verifies the exact request origin and anonymous bearer token, applies
+`selection_sync_gate`, validates IDs through trusted provider metadata, and calls
+`record_pdf_choices`. The private `pdf_choice_history` table has RLS enabled and
+no browser or direct service-role table privileges. Only server RPCs write it.
+`selection_rankings` returns aggregates from this history; no visitor identity,
+partner name, signature or private agreement field is exposed or stored in it.
 
-The four tables are in `supabase/migrations/202610310001_rankings.sql`.
-All have RLS enabled, no browser policies, and explicit browser privilege
-revocations. Aggregate reads also go through the server; individual visitor
-identities and lists are never exposed through the public ranking endpoint.
+The response header `X-Ranking-Status` reports whether choices were counted.
+A ranking outage does not prevent PDF delivery. The page explicitly tells the
+visitor if the PDF could not be counted; regenerating safely retries without
+adding duplicate votes. A PDF render failure never calls the vote recorder.
 
-Both lists are replaced in one transaction with a revision compare-and-swap.
-A request UUID and stored payload make exact retries idempotent, including a
-lost HTTP response. Conflicts return HTTP 409 and never replace newer state.
-Ranking totals use `count(distinct visitor_id)` across both slots. Empty arrays
-clear active selections. No seeded or historical browser vote totals are used.
+Legacy `/api/selections` still supports revision-safe current-list replacement
+for older tabs, but it does not contribute to PDF-history rankings. New browser
+code keeps editing local and creates/reuses anonymous Auth only when generating
+a PDF. Web Locks and the IndexedDB fallback serialize cross-tab Auth access.
 
-Provider aliases share a canonical UUID through `celebrity_sources`. Matching
-provider IDs converge under transaction locks. **Different providers are not
-automatically merged by display name**: names are not reliable identity proof.
-Cross-provider aliases require a reviewed, authoritative mapping to the same
-canonical UUID. Until such mappings exist, a person represented by different
-providers can appear separately. The second, unapplied migration provides an
-administrator-only atomic merge for confirmed aliases, including existing votes.
-Review and record authoritative evidence before using it; no display-name
-matching or unverified alias data is shipped.
+Reviewed provider aliases share a canonical ID. The administrator-only merge
+function combines PDF history while preserving one vote per visitor. No
+name-based automatic alias matching is performed.
 
-Browser lists and PDF inputs keep their existing localStorage keys. The browser
-uses the pinned Supabase JS SDK `2.118.0` from esm.sh for persisted anonymous
-sessions and token refresh. Web Locks serialize initial sign-in and sync across
-tabs, with an IndexedDB transaction fallback also used for SDK Auth locks.
-Browsers with neither facility retain local lists/PDFs and aggregate reads, but
-do not sync. No framework or build step is introduced.
+## Activation
 
-Retries reuse persisted requests. Network failures back off to 60 seconds; HTTP
-429 waits a minute. Rejected stale requests require an explicit retry before
-rebasing current local lists to the returned revision. Edits while a request is
-in flight are sent afterward. Personal names entered for the PDF never leave
-the browser through the ranking integration.
+Run the new migration in the existing project as postgres, then publish the
+matching application branch. The migration preserves the old current selections,
+creates an empty PDF history, and changes aggregates to use that history. It is
+transactional and safe to run again. Do not substitute a public/service key for
+an administrator database connection. No database credentials belong in Git.
 
 ## Configuration for a later approved rollout
 
@@ -110,7 +106,7 @@ payload validation, database rate limits, RLS and service-only RPC permissions
 remain in place. CAPTCHA is an optional additional control.
 
 Future end-to-end sync testing needs a separately authorized isolated Supabase
-test environment with the schema installed, anonymous sign-ins enabled, and
+test environment with all migrations installed, anonymous sign-ins enabled, and
 Auth CAPTCHA disabled. A blank application site key cannot bypass CAPTCHA
 required by Supabase Auth. Only in that isolated environment, after approval,
 set its server credentials, exact `SITE_ORIGIN`, and `RANKINGS_ENABLED=true`.
