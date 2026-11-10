@@ -1,42 +1,15 @@
-// Personal lists remain local. Only provider IDs are sent to the ranking API.
+// Editing lists stays local. Only successfully generated PDFs contribute votes.
 const rankingSync = (() => {
-  const SNAPSHOT = 'cheatListSelectionSnapshot';
-  const SYNC = 'cheatListRankingSync';
-  let client, started = false, starting = false, timer, retryDelay = 1000, conflictRevision = null;
-  let sharedPeople = [], message = 'Shared rankings are unavailable.', failed = false;
-  function read(key) {
-    try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
-  }
-  function snapshot() {
-    return { her: herList.map(p => p.id), his: hisList.map(p => p.id) };
-  }
-  function selections(value) {
-    const ids = slot => (Array.isArray(value?.[slot]) ? value[slot] : [])
-      .filter(id => typeof id === 'string' && /^(tmdb|sportsdb|audiodb)-[1-9][0-9]{0,11}$/.test(id)).slice(0, 5);
-    return { her: ids('her'), his: ids('his') };
-  }
+  let client, starting, message = 'Rankings count choices from generated PDFs.', failed = false;
+  let sharedPeople = [];
   function status(value, error = false) {
     message = value; failed = error; updateRankings();
-  }
-  function changed() {
-    localStorage.setItem(SNAPSHOT, JSON.stringify(snapshot()));
-    conflictRevision = null;
-    schedule(350);
-  }
-  function schedule(delay = 350) {
-    if (!started || !client) return;
-    clearTimeout(timer);
-    timer = setTimeout(() => synchronize().catch(() => {
-      status('Your lists are saved on this device. Shared rankings will retry when a connection is available.', true);
-      schedule(retryDelay = Math.min(retryDelay * 2, 60000));
-    }), delay);
   }
   async function refresh() {
     const response = await fetch('/api/rankings', { cache: 'no-store' });
     if (!response.ok) throw new Error('Rankings unavailable');
     const data = await response.json();
     sharedPeople = data.rankings;
-    // Keep the existing add-to-list and search suggestion functions working.
     for (const person of sharedPeople) {
       const index = people.findIndex(p => p.id === person.id);
       if (index < 0) people.push(person); else people[index] = person;
@@ -47,7 +20,6 @@ const rankingSync = (() => {
   async function captcha(siteKey) {
     const container = document.getElementById('rankingCaptcha');
     container.hidden = false;
-    status('Complete the visitor check to include your selections in shared rankings.');
     if (!window.turnstile) {
       await new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -64,120 +36,54 @@ const rankingSync = (() => {
       });
     });
   }
-  async function synchronize() {
-    // One network writer across tabs, including browsers without Web Locks.
-    await browserLock.request('cheatlist-ranking-writer', -1, async () => {
-      const { data: { session }, error } = await client.auth.getSession();
-      if (error || !session) {
-        status('Your lists are saved on this device. The visitor session is unavailable.', true);
-        return; // Do not create a new identity on a transient session failure.
-      }
-      let state = read(SYNC);
-      if (!state || state.visitor !== session.user.id)
-        state = { visitor: session.user.id, revision: 0, confirmed: null, pending: null };
-      const latest = selections(read(SNAPSHOT) || snapshot());
-      if (!state.pending && JSON.stringify(latest) === JSON.stringify(state.confirmed)) {
-        await refresh(); status('Rankings reflect current visitor selections.'); return;
-      }
-      if (!state.pending) {
-        state.pending = { ...latest, revision: state.revision, requestId: crypto.randomUUID() };
-        localStorage.setItem(SYNC, JSON.stringify(state));
-      }
-      status('Updating shared rankings...');
-      const response = await fetch('/api/selections', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        // Persisted browser data is untrusted too. Never forward extra fields.
-        body: JSON.stringify({ ...selections(state.pending), revision: state.pending.revision,
-          requestId: state.pending.requestId })
-      });
-      // Protection pages and gateway errors may return HTML instead of JSON.
-      // Keep the persisted request until an application acknowledgment arrives.
-      let result;
-      try { result = await response.json(); } catch {
-        status('Your lists are saved here. The ranking service returned an unexpected response. Please retry.', true);
-        return;
-      }
-      if (response.status === 409) {
-        conflictRevision = result.revision;
-        status('Another update reached shared rankings first. Your lists remain saved here. Retry to use your current lists.', true);
-        return; // Never automatically rebase a rejected stale write.
-      }
-      if (response.status === 429) {
-        status('Your lists are saved here. Shared rankings will update shortly.'); schedule(60000); return;
-      }
-      if (!response.ok) {
-        if (response.status >= 500) throw new Error('Sync unavailable');
-        if (response.status === 400 || response.status === 422) {
-          state.pending = null; localStorage.setItem(SYNC, JSON.stringify(state));
-        }
-        const reason = response.status === 401
-          ? 'Your visitor session needs to be restored. Please retry.'
-          : response.status === 403
-            ? 'This deployment is not authorized to synchronize rankings.'
-            : response.status === 400 || response.status === 422
-              ? 'Shared rankings could not validate this update. Check your selections and retry.'
-              : 'The ranking service rejected this request. Please retry.';
-        status(`Your lists are saved here. ${reason}`, true); return;
-      }
-      if (!Number.isSafeInteger(result.revision) || result.revision <= state.pending.revision)
-        throw new Error('Invalid synchronization acknowledgment');
-      state.revision = result.revision;
-      state.confirmed = { her: state.pending.her, his: state.pending.his };
-      state.pending = null;
-      localStorage.setItem(SYNC, JSON.stringify(state));
-      retryDelay = 1000;
-      status('Rankings reflect current visitor selections.');
-      await refresh();
-      if (JSON.stringify(selections(read(SNAPSHOT) || snapshot())) !== JSON.stringify(state.confirmed)) schedule();
-    });
-  }
   async function start() {
-    if (starting) return;
-    starting = true;
+    if (starting) return starting;
+    starting = (async () => {
+      try { await refresh(); status('Rankings count choices from generated PDFs. Each visitor counts once per celebrity.'); }
+      catch { status('Shared rankings are unavailable. Your lists remain saved on this device.', true); }
+    })();
+    try { await starting; } finally { starting = null; }
+  }
+  async function preparePDF() {
     try {
       const cfg = await refresh();
-      if (!browserLock.supported) { status('Shared rankings are available. Enable browser storage to include your selections.'); return; }
-      const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.118.0');
-      client = createClient(cfg.supabaseUrl, cfg.publishableKey, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false,
-          lock: browserLock.request }
-      });
-      // Serialize first sign-in too, preventing two tabs from creating identities.
-      await browserLock.request('cheatlist-ranking-writer', -1, async () => {
+      if (!browserLock.supported) throw new Error('Browser storage unavailable');
+      if (!client) {
+        const { createClient } = await import('https://esm.sh/@supabase/supabase-js@2.118.0');
+        client = createClient(cfg.supabaseUrl, cfg.publishableKey, {
+          auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, lock: browserLock.request }
+        });
+      }
+      return await browserLock.request('cheatlist-ranking-writer', -1, async () => {
         const { data: { session }, error } = await client.auth.getSession();
         if (error) throw error;
-        if (!session) {
-          const token = cfg.turnstileSiteKey ? await captcha(cfg.turnstileSiteKey) : undefined;
-          const { error: signInError } = await client.auth.signInAnonymously({ options: { captchaToken: token } });
-          if (signInError) throw signInError;
-        }
+        if (session) return `Bearer ${session.access_token}`;
+        const token = cfg.turnstileSiteKey ? await captcha(cfg.turnstileSiteKey) : undefined;
+        const result = await client.auth.signInAnonymously({ options: { captchaToken: token } });
+        if (result.error || !result.data?.session) throw result.error || new Error('Visitor session unavailable');
+        return `Bearer ${result.data.session.access_token}`;
       });
-      started = true;
-      if (!read(SNAPSHOT)) localStorage.setItem(SNAPSHOT, JSON.stringify(snapshot()));
-      schedule();
     } catch {
-      status('Your lists are saved on this device. Shared rankings are currently unavailable.', true);
-    } finally { starting = false; }
+      status('Your PDF can still be generated, but shared rankings are currently unavailable.', true);
+      return null;
+    }
   }
-  function retry() {
-    if (!started) { start(); return; }
-    browserLock.request('cheatlist-ranking-writer', -1, () => {
-      const state = read(SYNC);
-      if (state && conflictRevision !== null) {
-        state.revision = conflictRevision; state.pending = null;
-        localStorage.setItem(SYNC, JSON.stringify(state)); conflictRevision = null;
-      }
-    }).then(() => schedule(0)).catch(() => status('Browser storage is unavailable. Your lists remain on this device.', true));
+  function pdfCompleted(counted) {
+    if (!counted) {
+      status('Your PDF was generated, but its choices could not be counted. Generate it again to retry; duplicates are not counted.', true);
+      return;
+    }
+    status('Your PDF choices have been counted. Each visitor counts once per celebrity.');
+    refresh().catch(() => status('Your PDF choices were counted. Rankings could not be refreshed yet.', true));
   }
-  window.addEventListener('online', () => started ? schedule(0) : start());
+  function changed() {
+    status('Generate a PDF to count these choices. Previous PDF choices stay in the running totals.');
+  }
+  window.addEventListener('online', start);
   window.addEventListener('storage', event => {
-    if (event.key === SNAPSHOT) { loadLists(); renderLists(); schedule(); }
+    if (event.key === 'cheatListHerList' || event.key === 'cheatListHisList') { loadLists(); renderLists(); }
   });
-  setInterval(() => {
-    if (started && !document.hidden) refresh().catch(() => {
-      status('Shared rankings could not be refreshed. Your lists are saved on this device.', true);
-    });
-  }, 60000);
-  return { start, changed, retry, get people() { return sharedPeople; },
-    get message() { return message; }, get failed() { return failed; } };
+  setInterval(() => { if (!document.hidden) refresh().catch(() => {}); }, 60000);
+  return { start, changed, retry: start, preparePDF, pdfCompleted,
+    get people() { return sharedPeople; }, get message() { return message; }, get failed() { return failed; } };
 })();

@@ -1,4 +1,5 @@
 -- READ ONLY. Proposed 180-day inactivity threshold, not an enabled policy.
+-- PDF-choice history is deliberately retained; deleting Auth users does not reduce totals.
 -- Counts only: no identities, tokens, private lists or application records.
 -- Recent successful syncs OR rate-gate attempts count as activity. Do not use
 -- created_at alone: an old anonymous identity can still be in daily use.

@@ -40,8 +40,8 @@ test('migration revokes browser/PUBLIC access even with permissive object defaul
         [role, 'public.merge_celebrity_alias(uuid,uuid)', 'EXECUTE'])).rows[0].allowed, false);
     }
 
-    const tables = ['celebrities', 'celebrity_sources', 'visitor_selections', 'visitor_sync_state'];
-    const functions = ['selection_rankings()', 'selection_sync_gate(uuid)', 'sync_visitor_selections(uuid,bigint,uuid,jsonb)'];
+    const tables = ['celebrities', 'celebrity_sources', 'visitor_selections', 'visitor_sync_state', 'pdf_choice_history'];
+    const functions = ['selection_rankings()', 'selection_sync_gate(uuid)', 'sync_visitor_selections(uuid,bigint,uuid,jsonb)', 'record_pdf_choices(uuid,jsonb)'];
     for (const role of ['anon', 'authenticated']) {
       for (const table of tables) {
         for (const permission of ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) {
@@ -92,15 +92,17 @@ test('migration revokes browser/PUBLIC access even with permissive object defaul
       join public.celebrities c on c.id = s.celebrity_id
       where s.provider = 'tmdb' and s.provider_id = '1245'`);
     assert.equal(cached.rows[0].name, 'Test celebrity', 'server metadata cache join remains readable');
+    assert.deepEqual((await db.query('select public.selection_rankings() as rankings')).rows[0].rankings, [], 'editing lists cannot vote');
+    await db.query('select public.record_pdf_choices($1,$2::jsonb)', [visitor, JSON.stringify(items)]);
     assert.equal((await db.query('select public.selection_rankings() as rankings')).rows[0].rankings[0].votes, 1);
-    for (const table of ['visitor_selections', 'visitor_sync_state']) {
+    for (const table of ['visitor_selections', 'visitor_sync_state', 'pdf_choice_history']) {
       await assert.rejects(db.query(`select * from public.${table}`), error => error.code === '42501');
     }
     for (const table of tables) {
       await assert.rejects(db.query(`delete from public.${table}`), error => error.code === '42501');
     }
     assert.equal((await sync(1, [])).revision, 2, 'RPC can remove selections and update state');
-    assert.deepEqual((await db.query('select public.selection_rankings() as rankings')).rows[0].rankings, []);
+    assert.equal((await db.query('select public.selection_rankings() as rankings')).rows[0].rankings[0].votes, 1, 'clearing lists keeps PDF votes');
     await db.exec('reset role');
   } finally { await db.close(); }
 });

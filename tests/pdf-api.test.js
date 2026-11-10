@@ -6,25 +6,26 @@ const { Readable } = require('node:stream');
 const vm = require('node:vm');
 
 function endpoint() {
-  const rendered = [], options = []; let closed = 0, launched = 0;
+  const rendered = [], options = []; let closed = 0, launched = 0; let pdfFailure = false, counted = 0;
   const context = {
     Buffer, console: { error() {} }, module: { exports: {} },
     fetch() { assert.fail('PDF generation must not send agreement data to Supabase or any other service'); },
     require(name) {
+      if (name === '../lib/pdf-rankings') return { recordPDFChoices: async () => { counted++; return 'counted'; } };
       if (name === '../lib/agreement-design') return require('../lib/agreement-design');
       if (name === '@sparticuz/chromium') return { executablePath: async () => '/test/chromium', args: [] };
       if (name === 'puppeteer-core') return { launch: async () => {
         launched++;
         return { newPage: async () => ({ setContent: async html => rendered.push(html),
           emulateMediaType: async type => assert.equal(type, 'print'), evaluate: async () => {},
-          pdf: async config => { options.push(config); return Buffer.from('%PDF-test'); } }),
+          pdf: async config => { options.push(config); if (pdfFailure) throw new Error('Chromium failed'); return Buffer.from('%PDF-test'); } }),
         close: async () => { closed++; } };
       } };
       throw new Error(`Unexpected module ${name}`);
     }
   };
   vm.runInNewContext(readFileSync(join(__dirname, '../api/agreement-pdf.js'), 'utf8'), context);
-  return { handler: context.module.exports, rendered, options, get closed() { return closed; }, get launched() { return launched; } };
+  return { handler: context.module.exports, rendered, options, get closed() { return closed; }, get launched() { return launched; }, get counted() { return counted; }, failPDF() { pdfFailure = true; } };
 }
 function response() {
   return { headers: {}, setHeader(name, value) { this.headers[name] = value; }, end(body) { this.body = body; } };
@@ -98,4 +99,15 @@ test('invalid agreement types cannot enter HTML or download headers', async () =
   await e.handler({ method: 'POST', body: { type: '<script>bad()</script>' } }, res);
   assert.equal(res.statusCode, 500); assert.equal(e.launched, 0);
   assert.equal(res.headers['Content-Disposition'], undefined);
+});
+
+
+test('only successfully rendered PDFs call the vote recorder', async () => {
+  const e = endpoint(); e.failPDF(); const failed = response();
+  await e.handler({ method: 'POST', body: payload('couples') }, failed);
+  assert.equal(failed.statusCode, 500); assert.equal(e.counted, 0);
+  const ok = endpoint(), res = response();
+  await ok.handler({ method: 'POST', body: payload('her') }, res);
+  assert.equal(res.statusCode, 200); assert.equal(ok.counted, 1);
+  assert.equal(res.headers['X-Ranking-Status'], 'counted');
 });
